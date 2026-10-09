@@ -1,0 +1,16 @@
+archive/
+dist/
+__pycache__/
+.pytest_cache/
+*.zip
+# Only the public packaging utilities belong in tools/.
+/tools/*
+!/tools/package_recommendations.py
+!/tools/verify_packages.py
+/.zcode/
+/DataAddons/
+/collectors/
+/collector/
+.env
+.env.*
+*.har

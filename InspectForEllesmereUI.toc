@@ -1,0 +1,80 @@
+## Interface: 120100, 120007
+## Title: Inspect for EllesmereUI
+## Version: v2.3.0
+## LastUpdated: 2026-10-08
+## Notes: Item level, gear inspect, gems, enchants, durability and gear recommendations
+## Notes-zhCN: 装等观察、装备检视、宝石附魔、耐久度与装备推荐
+## Notes-zhTW: 裝等觀察、裝備檢視、寶石附魔、耐久度與裝備推薦
+## Author: 星野緣·羅寧 CN
+## X-License: MIT
+## SavedVariables: InspectForEllesmereUIDB
+## SavedVariablesPerCharacter: InspectForEllesmereUICharacterDB
+## OptionalDeps: EllesmereUI, QFXGearData, QFXConsumableData
+
+libs\lib.xml
+
+locales\locales.xml
+EllesmereSkin.lua
+Options.lua
+
+ItemLevel.lua
+
+InspectCore.lua
+
+InspectUnit.lua
+InspectUnitStats.lua
+InspectUnitGemAndEnchant.lua
+InspectUnitSpecialization.lua
+PluginGreenState.lua
+
+GearData\core.lua
+GearData\sources.lua
+GearData\spec_62.lua
+GearData\spec_63.lua
+GearData\spec_64.lua
+GearData\spec_65.lua
+GearData\spec_66.lua
+GearData\spec_70.lua
+GearData\spec_71.lua
+GearData\spec_72.lua
+GearData\spec_73.lua
+GearData\spec_102.lua
+GearData\spec_103.lua
+GearData\spec_104.lua
+GearData\spec_105.lua
+GearData\spec_250.lua
+GearData\spec_251.lua
+GearData\spec_252.lua
+GearData\spec_253.lua
+GearData\spec_254.lua
+GearData\spec_255.lua
+GearData\spec_256.lua
+GearData\spec_257.lua
+GearData\spec_258.lua
+GearData\spec_259.lua
+GearData\spec_260.lua
+GearData\spec_261.lua
+GearData\spec_262.lua
+GearData\spec_263.lua
+GearData\spec_264.lua
+GearData\spec_265.lua
+GearData\spec_266.lua
+GearData\spec_267.lua
+GearData\spec_268.lua
+GearData\spec_269.lua
+GearData\spec_270.lua
+GearData\spec_577.lua
+GearData\spec_581.lua
+GearData\spec_1467.lua
+GearData\spec_1468.lua
+GearData\spec_1473.lua
+GearData\spec_1480.lua
+
+RecommendationLocale.lua
+RecommendationCompat.lua
+RecommendationCore.lua
+RecommendationStats.lua
+RecommendationSources.lua
+RecommendationGear.lua
+RecommendationConsumables.lua
+RecommendationPanel.lua
