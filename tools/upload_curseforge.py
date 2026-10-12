@@ -18,6 +18,8 @@ FILES_URL = "https://www.curseforge.com/api/v1/mods/{project}/files?pageIndex=0&
 VERSIONS_URL = "https://wow.curseforge.com/api/game/versions"
 RETAIL_TYPE_ID = 1
 CHANGELOG_LIMIT = 18000
+# Cloudflare (error 1010) rejects the default Python-urllib signature on the upload endpoint.
+USER_AGENT = "InspectForEllesmereUI-release"
 
 
 def interface_versions(toc_path):
@@ -51,7 +53,8 @@ def resolve_game_versions(available, names):
 
 def api_get(url, token):
     request = urllib.request.Request(
-        url, headers={"X-Api-Token": token, "Accept": "application/json"})
+        url, headers={"X-Api-Token": token, "Accept": "application/json",
+                      "User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=60) as response:
         return json.loads(response.read().decode("utf-8"))
 
@@ -60,7 +63,7 @@ def already_uploaded(project, file_name):
     try:
         request = urllib.request.Request(
             FILES_URL.format(project=project),
-            headers={"Accept": "application/json", "User-Agent": "InspectForEllesmereUI-release"})
+            headers={"Accept": "application/json", "User-Agent": USER_AGENT})
         with urllib.request.urlopen(request, timeout=60) as response:
             data = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, ValueError) as exc:
@@ -83,7 +86,7 @@ def api_upload(project, token, zip_path, metadata):
     body.extend(f"\r\n--{boundary}--\r\n".encode("utf-8"))
     request = urllib.request.Request(
         UPLOAD_URL.format(project=project), data=bytes(body), method="POST",
-        headers={"X-Api-Token": token, "Accept": "application/json",
+        headers={"X-Api-Token": token, "Accept": "application/json", "User-Agent": USER_AGENT,
                  "Content-Type": f"multipart/form-data; boundary={boundary}"})
     with urllib.request.urlopen(request, timeout=600) as response:
         return json.loads(response.read().decode("utf-8"))
