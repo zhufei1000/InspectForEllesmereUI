@@ -40,3 +40,28 @@ jobs:
             --zip 'dist/InspectForEllesmereUI_*.zip' \
             --tag "v$version" \
             --dry-run
+      - name: Probe upload endpoint user-agent handling
+        run: |
+          python - <<'PY'
+          import urllib.error
+          import urllib.request
+
+          URL = "https://wow.curseforge.com/api/projects/1735274/upload"
+          AGENTS = [
+              None,
+              "InspectForEllesmereUI-release",
+              "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+          ]
+          for agent in AGENTS:
+              headers = {"Accept": "application/json"}
+              if agent:
+                  headers["User-Agent"] = agent
+              request = urllib.request.Request(URL, data=b"", method="POST", headers=headers)
+              try:
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      code, body = response.status, response.read()[:200]
+              except urllib.error.HTTPError as exc:
+                  code, body = exc.code, exc.read()[:200]
+              text = body.decode("utf-8", errors="replace").replace("\n", " ")[:160]
+              print(f"UA={agent!r} code={code} body={text}")
+          PY
