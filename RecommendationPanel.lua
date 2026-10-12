@@ -571,7 +571,7 @@ E:attachTrigger("INSPECT_FRAME_CREATED",function(_,frame) Attach(frame) end)
 SLASH_INSPECTFORELLESMEREUITRAITS1 = "/ifeuitraits"
 if SlashCmdList then
 SlashCmdList["INSPECTFORELLESMEREUITRAITS"] = function()
-    print("== Inspect for EllesmereUI 万奥宝典诊断 v2 ==")
+    print("== Inspect for EllesmereUI " .. (R.L.omnium or "Omnium Folio") .. " diagnostics v2 ==")
     if not C_Traits then print("此客户端无 C_Traits") return end
     print("GetConfigIDBySystemID=" .. type(C_Traits.GetConfigIDBySystemID)
         .. " GetConfigInfo=" .. type(C_Traits.GetConfigInfo)

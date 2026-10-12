@@ -10,10 +10,6 @@ local LibItemInfo = LibStub:GetLibrary("LibItemInfo.7000")
 local GetSpecializationAPI = C_SpecializationInfo and C_SpecializationInfo.GetSpecialization or GetSpecialization
 local GetSpecializationInfoAPI = C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo or GetSpecializationInfo
 
-local function GetStateValue(unit, state, value, default)
-    return value or default
-end
-
 function ShowInspectItemStatsFrame(frame, unit)
     if (not frame.expandButton) then
         local expandButton = CreateFrame("Button", nil, frame)

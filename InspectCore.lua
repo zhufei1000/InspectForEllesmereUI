@@ -13,30 +13,6 @@ local GetInspectSpecializationAPI = C_SpecializationInfo and C_SpecializationInf
 local guids, inspecting = {}, false
 local guidOrder, MAX_GUIDS = {}, 100 --缓存有上限，超出按插入顺序移除最旧
 
--- Global API
-function GetInspectInfo(unit, timelimit, checkhp)
-    local guid = UnitGUID(unit)
-    if (not guid or not guids[guid]) then return end
-    if (checkhp and UnitHealthMax(unit) ~= guids[guid].hp) then return end
-    if (not timelimit or timelimit == 0) then
-        return guids[guid]
-    end
-    if (guids[guid].timer > time()-timelimit) then
-        return guids[guid]
-    end
-end
-
--- Global API
-function GetInspecting()
-    if (InspectFrame and InspectFrame.unit) then
-        local guid = UnitGUID(InspectFrame.unit)
-        return guids[guid] or { inuse = true }
-    end
-    if (inspecting and inspecting.expired > time()) then
-        return inspecting
-    end
-end
-
 -- Global API @trigger UNIT_REINSPECT_READY
 function ReInspect(unit)
     local guid = UnitGUID(unit)

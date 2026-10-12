@@ -83,6 +83,7 @@ end
 assert(ns.L.Other and ns.L.ShowInspectItemSetSummary and ns.L.LoadingGemInfo)
 if locale=="zhCN" then assert(ns.L.Other=="其他界面")
 elseif locale=="zhTW" then assert(ns.L.Other=="其他介面")
+elseif locale=="ruRU" then assert(ns.L.Other=="Прочие окна")
 else assert(ns.L.Other=="Other frames") end
 local skinnedButtons=0
 if skin then EllesmereUI={RegisterSkin=function(_,fn) fn({Shell=function() end,Inset=function() end,Panel=function() end,CloseButton=function() end,Font=function() end,OnLooksChanged=function() end,Button=function() skinnedButtons=skinnedButtons+1 end,SquareIcon=function() end}) end} end

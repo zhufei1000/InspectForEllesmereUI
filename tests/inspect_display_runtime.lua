@@ -207,6 +207,17 @@ assert(panel.item1.link==inventory.player[1],"Inventory instance link must survi
 assert(panel.item1.itemString.text:find("[Hero 6/6]",1,true),"Upgrade track")
 assert(panel.item2.itemString.text:find((ns.L and ns.L.NoUpgradeTrack) or "No upgrade track",1,true))
 assert(panel.item15.itemString.text:find((ns.L and ns.L.CraftedEquipment) or "Crafted",1,true))
+local stickyWidth = panel:GetWidth()
+local savedInventory = inventory.player
+local savedRequested = {}
+for k, v in pairs(requested) do savedRequested[k] = v end
+inventory.player = {}
+panel = ShowInspectItemListFrame("player",parent,321,321)
+assert(panel:GetWidth()==stickyWidth,"Same-target rebuilds keep panel width (no auto-narrowing)")
+inventory.player = savedInventory
+panel = ShowInspectItemListFrame("player",parent,321,321)
+for k in pairs(requested) do requested[k] = nil end
+for k, v in pairs(savedRequested) do requested[k] = v end
 local qualitySize=useSkin and 11 or 14
 assert(panel.item15.itemString.text:find("|A:Professions-ChatIcon-Quality-Tier2:"..qualitySize..":"..qualitySize.."|a",1,true))
 assert(panel.item1.levelDigits[1].text=="3" and panel.item1.levelDigits[2].text=="2" and panel.item1.levelDigits[3].text=="1","First row renders all item-level digits")

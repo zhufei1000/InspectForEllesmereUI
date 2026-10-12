@@ -19,7 +19,7 @@ local WEAPON = WEAPON or "Weapon"
 local MOUNTS = MOUNTS or "Mount"
 local RELICSLOT = RELICSLOT or "Relic"
 local ARTIFACT_POWER = ARTIFACT_POWER or "Artifact"
-if (GetLocale():sub(1,2) == "zh") then ARTIFACT_POWER = "能量" end
+if (GetLocale():sub(1,2) == "zh") then ARTIFACT_POWER = "神器能量" end
 
 --fixed for 8.x
 local GetLootInfoByIndex = EJ_GetLootInfoByIndex

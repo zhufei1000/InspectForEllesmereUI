@@ -361,6 +361,8 @@ end
 function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
     if (not parent:IsShown()) then return end
     local frame = GetInspectItemListFrame(parent)
+    --同目标重复构建时宽度只增不减：徽章/名称/宝石分批到达，重算会忽宽忽窄
+    local sameView = frame:IsShown() and frame.unit == unit
     local class = select(2, UnitClass(unit))
     local color = RAID_CLASS_COLORS[class] or NORMAL_FONT_COLOR
     frame.unit = unit
@@ -501,7 +503,11 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
         row:SetWidth(row.width)
         width = max(width, row.width)
     end
-    frame:SetWidth(width + 36)
+    local newWidth = width + 36
+    if (sameView) then
+        newWidth = max(newWidth, frame:GetWidth())
+    end
+    frame:SetWidth(newWidth)
     frame:Show()
 
     LibEvent:trigger("INSPECT_FRAME_SHOWN", frame, parent, ilevel)
