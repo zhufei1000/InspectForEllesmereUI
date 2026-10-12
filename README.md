@@ -50,6 +50,7 @@ v* 标签会触发 [Release addon](https://github.com/zhufei1000/InspectForElles
 1. 在 CurseForge 账号的 [API Tokens](https://legacy.curseforge.com/account/api-tokens) 页面生成上传用 Token；
 2. 在仓库 Settings → Secrets and variables → Actions 添加 secret `CF_API_TOKEN`；
 3. 之后每次发布都会把安装包连同 GitHub Release 说明自动上传到 CurseForge 项目 1735274。未配置该 secret 时自动跳过；同一文件已上传时会跳过，重跑安全。
+4. 可随时在 Actions 手动运行 [Verify CurseForge upload](https://github.com/zhufei1000/InspectForEllesmereUI/actions/workflows/cf-verify.yml) 做 dry-run 检查：验证 Token、游戏版本匹配和重复文件状态，不会上传。
 
 仓库仅保留插件及公共测试/打包工具。本地信息采集器、采集配置、凭据、开发会话及备份不上传；tools 目录仅允许三个公开打包脚本进入 Git。
 
