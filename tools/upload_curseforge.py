@@ -131,6 +131,10 @@ def main():
             print(f"resolved version ids: {chosen}")
             for name in missing:
                 print(f"warning: no CurseForge game version entry for {name}", file=sys.stderr)
+            if already_uploaded(args.project_id, token, zip_path.name):
+                print(f"{zip_path.name} is already on CurseForge; a real upload would be skipped")
+            else:
+                print(f"{zip_path.name} is not on CurseForge yet; a real upload would proceed")
         else:
             print(f"({args.token_env} not set; skipping game version lookup)")
         return 0
