@@ -45,7 +45,13 @@ git push origin v2.3.1
 
 v* 标签会触发 [Release addon](https://github.com/zhufei1000/InspectForEllesmereUI/actions/workflows/release.yml)：校验标签与 TOC 版本一致、运行测试、打包、生成 SHA256 校验文件，然后发布 GitHub Release。失败时可重跑任务，或在 Actions 中手动运行并填写已有标签；已发布版本不会被重复覆盖。发布使用 GitHub 自动提供的 token，无需额外配置个人令牌。
 
-仓库仅保留插件及公共测试/打包工具。本地信息采集器、采集配置、凭据、开发会话及备份不上传；tools 目录仅允许两个公开打包脚本进入 Git。
+### CurseForge 自动上传（可选）
+
+1. 在 CurseForge 账号的 [API Tokens](https://legacy.curseforge.com/account/api-tokens) 页面生成上传用 Token；
+2. 在仓库 Settings → Secrets and variables → Actions 添加 secret `CF_API_TOKEN`；
+3. 之后每次发布都会把安装包连同 GitHub Release 说明自动上传到 CurseForge 项目 1735274。未配置该 secret 时自动跳过；同一文件已上传时会跳过，重跑安全。
+
+仓库仅保留插件及公共测试/打包工具。本地信息采集器、采集配置、凭据、开发会话及备份不上传；tools 目录仅允许三个公开打包脚本进入 Git。
 
 ## License
 
