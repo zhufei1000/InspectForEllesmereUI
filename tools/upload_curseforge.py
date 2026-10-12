@@ -13,7 +13,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 ADDON = "InspectForEllesmereUI"
-UPLOAD_URL = "https://wow.curseforge.com/api/projects/{project}/upload"
+UPLOAD_URL = "https://wow.curseforge.com/api/projects/{project}/upload-file"
 FILES_URL = "https://www.curseforge.com/api/v1/mods/{project}/files?pageIndex=0&pageSize=50"
 VERSIONS_URL = "https://wow.curseforge.com/api/game/versions"
 RETAIL_TYPE_ID = 1
@@ -89,7 +89,12 @@ def api_upload(project, token, zip_path, metadata):
         headers={"X-Api-Token": token, "Accept": "application/json", "User-Agent": USER_AGENT,
                  "Content-Type": f"multipart/form-data; boundary={boundary}"})
     with urllib.request.urlopen(request, timeout=600) as response:
-        return json.loads(response.read().decode("utf-8"))
+        payload = response.read().decode("utf-8", errors="replace")
+    try:
+        return json.loads(payload)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(
+            f"CurseForge returned a non-JSON response ({response.status}): {payload[:400]}") from exc
 
 
 def read_changelog(path, tag):

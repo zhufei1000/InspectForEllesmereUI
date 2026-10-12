@@ -43,25 +43,28 @@ jobs:
       - name: Probe upload endpoint user-agent handling
         run: |
           python - <<'PY'
+          import os
           import urllib.error
           import urllib.request
 
-          URL = "https://wow.curseforge.com/api/projects/1735274/upload"
-          AGENTS = [
-              None,
-              "InspectForEllesmereUI-release",
-              "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-          ]
-          for agent in AGENTS:
-              headers = {"Accept": "application/json"}
-              if agent:
-                  headers["User-Agent"] = agent
+          URL = "https://wow.curseforge.com/api/projects/1735274/upload-file"
+
+          def probe(label, headers):
               request = urllib.request.Request(URL, data=b"", method="POST", headers=headers)
               try:
                   with urllib.request.urlopen(request, timeout=30) as response:
-                      code, body = response.status, response.read()[:200]
+                      code, body = response.status, response.read()[:300]
               except urllib.error.HTTPError as exc:
-                  code, body = exc.code, exc.read()[:200]
-              text = body.decode("utf-8", errors="replace").replace("\n", " ")[:160]
-              print(f"UA={agent!r} code={code} body={text}")
+                  code, body = exc.code, exc.read()[:300]
+              text = body.decode("utf-8", errors="replace").replace("\n", " ")[:240]
+              print(f"{label}: code={code} body={text}")
+
+          probe("no-UA", {"Accept": "application/json"})
+          probe("custom-UA", {"Accept": "application/json",
+                              "User-Agent": "InspectForEllesmereUI-release"})
+          token = os.environ.get("CF_API_TOKEN", "")
+          if token:
+              probe("token-empty", {"Accept": "application/json",
+                                    "User-Agent": "InspectForEllesmereUI-release",
+                                    "X-Api-Token": token})
           PY
