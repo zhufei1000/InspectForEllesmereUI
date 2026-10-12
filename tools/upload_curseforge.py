@@ -14,7 +14,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 ADDON = "InspectForEllesmereUI"
 UPLOAD_URL = "https://wow.curseforge.com/api/projects/{project}/upload"
-FILES_URL = "https://wow.curseforge.com/api/projects/{project}/files"
+FILES_URL = "https://www.curseforge.com/api/v1/mods/{project}/files?pageIndex=0&pageSize=50"
 VERSIONS_URL = "https://wow.curseforge.com/api/game/versions"
 RETAIL_TYPE_ID = 1
 CHANGELOG_LIMIT = 18000
@@ -56,9 +56,13 @@ def api_get(url, token):
         return json.loads(response.read().decode("utf-8"))
 
 
-def already_uploaded(project, token, file_name):
+def already_uploaded(project, file_name):
     try:
-        data = api_get(f"{FILES_URL.format(project=project)}?pageSize=50", token)
+        request = urllib.request.Request(
+            FILES_URL.format(project=project),
+            headers={"Accept": "application/json", "User-Agent": "InspectForEllesmereUI-release"})
+        with urllib.request.urlopen(request, timeout=60) as response:
+            data = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, ValueError) as exc:
         print(f"warning: could not list existing files ({exc}); continuing", file=sys.stderr)
         return False
@@ -126,15 +130,15 @@ def main():
         print(f"releaseType: {args.release_type}")
         print(f"game versions: {', '.join(names)}")
         print(f"changelog: {len(changelog)} chars")
+        if already_uploaded(args.project_id, zip_path.name):
+            print(f"{zip_path.name} is already on CurseForge; a real upload would be skipped")
+        else:
+            print(f"{zip_path.name} is not on CurseForge yet; a real upload would proceed")
         if token:
             chosen, missing = resolve_game_versions(api_get(VERSIONS_URL, token), names)
             print(f"resolved version ids: {chosen}")
             for name in missing:
                 print(f"warning: no CurseForge game version entry for {name}", file=sys.stderr)
-            if already_uploaded(args.project_id, token, zip_path.name):
-                print(f"{zip_path.name} is already on CurseForge; a real upload would be skipped")
-            else:
-                print(f"{zip_path.name} is not on CurseForge yet; a real upload would proceed")
         else:
             print(f"({args.token_env} not set; skipping game version lookup)")
         return 0
@@ -142,7 +146,7 @@ def main():
     if not token:
         parser.error(f"{args.token_env} is not set")
 
-    if already_uploaded(args.project_id, token, zip_path.name):
+    if already_uploaded(args.project_id, zip_path.name):
         print(f"{zip_path.name} is already on CurseForge; skipping upload")
         return 0
 
