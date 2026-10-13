@@ -36,12 +36,14 @@ python tools/verify_packages.py dist/*.zip
 main 的提交与 Pull Request 会自动检查 Lua、推荐数据和安装包。发布时修改 TOC 中的三段版本号，提交并推送，然后创建同版本标签：
 
 ```sh
-git add InspectForEllesmereUI.toc
+git add -A
 git commit -m "Release v2.3.1"
 git push origin main
 git tag v2.3.1
 git push origin v2.3.1
 ```
+
+请提交全部插件改动（含适配层等新增文件）后再打标签；采集器的"自动提交并发布"同样会提交工作区内的全部改动。
 
 v* 标签会触发 [Release addon](https://github.com/zhufei1000/InspectForEllesmereUI/actions/workflows/release.yml)：校验标签与 TOC 版本一致、运行测试、打包、生成 SHA256 校验文件，然后发布 GitHub Release。失败时可重跑任务，或在 Actions 中手动运行并填写已有标签；已发布版本不会被重复覆盖。发布使用 GitHub 自动提供的 token，无需额外配置个人令牌。
 
@@ -56,4 +58,6 @@ v* 标签会触发 [Release addon](https://github.com/zhufei1000/InspectForElles
 
 ## License
 
-[MIT](LICENSE). Includes code based on TinyInspect and TinyInspect-Remake; see the retained attribution in LICENSE.
+[MIT](LICENSE). Based on the original Inspect for EllesmereUI by 星野緣·羅寧 (MIT); also includes code based on TinyInspect and TinyInspect-Remake. See the retained attribution in LICENSE.
+
+基于原作者 星野緣·羅寧 的 Inspect for EllesmereUI(MIT 许可)开发,版权声明已在 LICENSE 中保留注明。

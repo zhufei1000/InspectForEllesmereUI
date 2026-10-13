@@ -1,15 +1,15 @@
 ## Interface: 120100, 120007
 ## Title: Inspect for EllesmereUI
-## Version: v2.3.7
-## LastUpdated: 2026-10-12
+## Version: v2.3.8
+## LastUpdated: 2026-10-13
 ## Notes: Item level, gear inspect, gems, enchants, durability and gear recommendations
 ## Notes-zhCN: 装等观察、装备检视、宝石附魔、耐久度与装备推荐
 ## Notes-zhTW: 裝等觀察、裝備檢視、寶石附魔、耐久度與裝備推薦
-## Author: 星野緣·羅寧 CN
+## Author: 群飞轩 (QFX)
 ## X-License: MIT
 ## SavedVariables: InspectForEllesmereUIDB
 ## SavedVariablesPerCharacter: InspectForEllesmereUICharacterDB
-## OptionalDeps: EllesmereUI, QFXGearData, QFXConsumableData
+## OptionalDeps: EllesmereUI, QFXGearData, QFXConsumableData, QFXAddonManager
 
 libs\lib.xml
 
@@ -78,3 +78,5 @@ RecommendationSources.lua
 RecommendationGear.lua
 RecommendationConsumables.lua
 RecommendationPanel.lua
+
+ManagerBridge.lua

@@ -266,6 +266,7 @@ frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frame.title:SetPoint("TOPLEFT", 18, -16)
 frame.title:SetText(displayName)
 frame.name = displayName
+ns.SettingsFrame = frame
 
 CreateCheckbox(options, frame, frame.title, 18, 9)
 
