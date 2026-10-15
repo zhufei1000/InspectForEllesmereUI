@@ -8,7 +8,6 @@ local addon, ns = ...
 
 local GetSpecializationAPI = C_SpecializationInfo and C_SpecializationInfo.GetSpecialization or GetSpecialization
 local GetSpecializationInfoAPI = C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo or GetSpecializationInfo
-local GetInspectSpecializationAPI = C_SpecializationInfo and C_SpecializationInfo.GetInspectSpecialization or GetInspectSpecialization
 
 hooksecurefunc("ShowInspectItemListFrame", function(unit, parent, itemLevel, maxLevel)
     local frame = parent.inspectFrame
@@ -38,8 +37,10 @@ hooksecurefunc("ShowInspectItemListFrame", function(unit, parent, itemLevel, max
         specID = GetSpecializationAPI()
         _, specName, _, specIcon = GetSpecializationInfoAPI(specID)
     else
-        specID = GetInspectSpecializationAPI(unit)
-        _, specName, _, specIcon = GetSpecializationInfoByID(specID)
+        specID = ns.GetReadableInspectSpecID(unit)
+        if specID then
+            _, specName, _, specIcon = GetSpecializationInfoByID(specID)
+        end
     end
     if (specIcon) then
         frame.spectext:SetText(specName)

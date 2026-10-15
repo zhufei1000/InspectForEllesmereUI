@@ -3,6 +3,7 @@
 -- InspectCore
 -------------------------------------
 
+local _, ns = ...
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
 local LibItemInfo = LibStub:GetLibrary("LibItemInfo.7000")
@@ -10,12 +11,24 @@ local GetSpecializationAPI = C_SpecializationInfo and C_SpecializationInfo.GetSp
 local GetSpecializationInfoAPI = C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo or GetSpecializationInfo
 local GetInspectSpecializationAPI = C_SpecializationInfo and C_SpecializationInfo.GetInspectSpecialization or GetInspectSpecialization
 
+local function Readable(value)
+    if issecretvalue and issecretvalue(value) then return nil end
+    return value
+end
+function ns.GetReadableInspectSpecID(unit)
+    if not Readable(unit) or type(GetInspectSpecializationAPI) ~= "function" then return nil end
+    local ok, id = pcall(GetInspectSpecializationAPI, unit)
+    if not ok then return nil end
+    id = Readable(id)
+    if type(id) == "number" and id > 0 then return id end
+end
+
 local guids, inspecting = {}, false
 local guidOrder, MAX_GUIDS = {}, 100 --缓存有上限，超出按插入顺序移除最旧
 
 -- Global API @trigger UNIT_REINSPECT_READY
 function ReInspect(unit)
-    local guid = UnitGUID(unit)
+    local guid = Readable(UnitGUID(unit))
     if (not guid) then return end
     local data = guids[guid]
     if (not data) then return end
@@ -49,7 +62,7 @@ function GetInspectSpec(unit)
         specID = GetSpecializationAPI()
         specName = select(2, GetSpecializationInfoAPI(specID))
     else
-        specID = GetInspectSpecializationAPI(unit)
+        specID = ns.GetReadableInspectSpecID(unit)
         if (specID and specID > 0) then
             specName = select(2, GetSpecializationInfoByID(specID))
         end
@@ -64,24 +77,26 @@ end)
 
 -- @trigger UNIT_INSPECT_STARTED
 hooksecurefunc("NotifyInspect", function(unit)
-    local guid = UnitGUID(unit)
+    local guid = Readable(UnitGUID(unit))
     if (not guid) then return end
     local data = guids[guid]
     if (data) then
         data.unit = unit
         data.name, data.realm = UnitName(unit)
+        data.name, data.realm = Readable(data.name), Readable(data.realm)
     else
         data = {
             unit   = unit,
             guid   = guid,
-            class  = select(2, UnitClass(unit)),
-            level  = UnitLevel(unit),
+            class  = Readable(select(2, UnitClass(unit))),
+            level  = Readable(UnitLevel(unit)),
             ilevel = -1,
             spec   = nil,
-            hp     = UnitHealthMax(unit),
+            hp     = Readable(UnitHealthMax(unit)),
             timer  = time(),
         }
         data.name, data.realm = UnitName(unit)
+        data.name, data.realm = Readable(data.name), Readable(data.realm)
         guids[guid] = data
         tinsert(guidOrder, guid)
         if (#guidOrder > MAX_GUIDS) then
@@ -98,6 +113,8 @@ end)
 
 -- @trigger UNIT_INSPECT_READY
 LibEvent:attachEvent("INSPECT_READY", function(this, guid)
+    guid = Readable(guid)
+    if not guid then return end
     if (not guids[guid]) then return end
     LibSchedule:AddTask({
         identity  = guid,
@@ -115,12 +132,12 @@ LibEvent:attachEvent("INSPECT_READY", function(this, guid)
                     self.repeats = self.repeats - 1
                     if (self.repeats <= 0) then
                         self.data.timer = time()
-                        self.data.name = UnitName(self.data.unit)
-                        self.data.class = select(2, UnitClass(self.data.unit))
+                        self.data.name = Readable(UnitName(self.data.unit))
+                        self.data.class = Readable(select(2, UnitClass(self.data.unit)))
                         self.data.ilevel = ilevel
                         self.data.maxLevel = maxLevel
                         self.data.spec = GetInspectSpec(self.data.unit)
-                        self.data.hp = UnitHealthMax(self.data.unit)
+                        self.data.hp = Readable(UnitHealthMax(self.data.unit))
                         self.data.weaponLevel = weaponLevel
                         self.data.isArtifact = isArtifact
                         LibEvent:trigger("UNIT_INSPECT_READY", self.data)

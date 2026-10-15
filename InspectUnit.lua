@@ -364,6 +364,7 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
     --同目标重复构建时宽度只增不减：徽章/名称/宝石分批到达，重算会忽宽忽窄
     local sameView = frame:IsShown() and frame.unit == unit
     local class = select(2, UnitClass(unit))
+    if issecretvalue and issecretvalue(class) then class = nil end
     local color = RAID_CLASS_COLORS[class] or NORMAL_FONT_COLOR
     frame.unit = unit
     local recommendations = ns.Recommendations
