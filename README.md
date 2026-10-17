@@ -45,6 +45,8 @@ git push origin v2.3.1
 
 请提交全部插件改动（含适配层等新增文件）后再打标签；采集器的"自动提交并发布"同样会提交工作区内的全部改动。
 
+采集器只生成 GearData，不重建 Options.lua 或 ManagerBridge.lua。采集器打包前与 CI／自动发布共用推荐数据和设置入口回归检查，覆盖父界面隐藏后恢复时不误开管理中心，以及正常设置入口与独立运行回退；检查失败时停止后续打包同步或发布。
+
 v* 标签会触发 [Release addon](https://github.com/zhufei1000/InspectForEllesmereUI/actions/workflows/release.yml)：校验标签与 TOC 版本一致、运行测试、打包、生成 SHA256 校验文件，然后发布 GitHub Release。失败时可重跑任务，或在 Actions 中手动运行并填写已有标签；已发布版本不会被重复覆盖。发布使用 GitHub 自动提供的 token，无需额外配置个人令牌。
 
 ### CurseForge 自动上传（可选）

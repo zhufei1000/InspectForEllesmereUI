@@ -24,6 +24,9 @@ for path in paths:
     check(path.read_text(encoding="utf-8-sig"),str(path))
 print("All workspace Lua files parse under Lua 5.1")
 for locale in ("enUS","zhCN","zhTW","ruRU","deDE","frFR","esES","esMX","koKR","itIT","ptBR"):
+    entry_runtime=LuaRuntime(unpack_returned_tuples=True)
+    entry_run=entry_runtime.eval('assert(loadfile("tests/settings_entry_runtime.lua"))')
+    entry_run(locale)
     stats_runtime=LuaRuntime(unpack_returned_tuples=True)
     stats_runtime.globals().GetLocale=lambda:locale
     stats_runtime.execute('''

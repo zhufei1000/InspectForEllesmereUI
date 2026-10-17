@@ -261,6 +261,7 @@ local function InitCheckbox(parent)
 end
 
 local frame = CreateFrame("Frame", nil, UIParent)
+frame:Hide()
 local displayName = "Inspect for EllesmereUI"
 frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frame.title:SetPoint("TOPLEFT", 18, -16)

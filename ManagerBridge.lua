@@ -168,6 +168,15 @@ end
 local settingsFrame = ns.SettingsFrame
 if settingsFrame and type(settingsFrame.HookScript) == "function" then
     settingsFrame:HookScript("OnShow", function(self)
-        if ns.TryOpenManager() then self:Hide() end
+        -- Ancestor visibility changes also fire OnShow; only a canvas hosted
+        -- by the visible native settings window represents a settings entry.
+        local parent = self:GetParent()
+        while parent do
+            if parent == rawget(_G, "SettingsPanel") or parent == rawget(_G, "InterfaceOptionsFrame") then
+                if parent:IsVisible() and ns.TryOpenManager() then self:Hide() end
+                return
+            end
+            parent = parent:GetParent()
+        end
     end)
 end
