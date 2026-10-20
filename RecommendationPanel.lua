@@ -552,7 +552,7 @@ function R:Refresh()
             if id then equipped[slot[1]]=id end
         end
     end
-    for _,row in ipairs(panel.gear) do self:RenderGear(row, equipped[row.slot]) end
+    for _,row in ipairs(panel.gear) do self:RenderGear(row, equipped) end
     self:Layout()
 end
 

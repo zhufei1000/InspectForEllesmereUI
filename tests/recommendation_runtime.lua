@@ -121,7 +121,7 @@ data.gearSlots[1].enchant={itemID=100,name="Test Enchant",enchantID=8017}
 data.gearSlots[1].enchantList={{itemID=100,name="Ench A",usage=.53},{itemID=101,name="Ench B",usage=.29}}
 local secondLink="|Hitem:101:0:0:0:0:0:0:0:80:71:0:16:1:900|h[Second]|h"
 owner.slotCache[2]={link=secondLink}
-data.gearSlots[2]={top3={item,{itemID=101,usage=.5,count=25,sampleCount=50}},enchant={itemID=100,name="Test Enchant",enchantID=8017}}
+data.gearSlots[2]={top3={{itemID=102,usage=.7,bis=true},{itemID=101,usage=.5,count=25,sampleCount=50}},enchant={itemID=100,name="Test Enchant",enchantID=8017}}
 local label,median,current,diff=R:StatDisplay("crit",data,150)
 assert(label and median==100 and current==150 and diff==50)
 QFXGearData={schemaVersion=1,GetRecommendation=function() return data end,itemSources={}}
@@ -135,8 +135,62 @@ assert(R.panel.updated:GetText()~="")
 assert(R.panel.gear[1].enchantState=="match")
 local row2
 for _,r in ipairs(R.panel.gear) do if r.slot==2 then row2=r end end
-assert(row2 and row2.extra:IsShown() and row2.extra.state:GetText()==string.format(R.L.topN,2))
+--主图标显示推荐，当前已装备不同则放在副图标并按自己的名次标注。
+assert(row2 and row2.state:GetText()==R.L.bis,"recommendation owns the main slot")
+assert(row2.extra:IsShown() and row2.extra.state:GetText()==string.format(R.L.topN,2),
+    "equipped item shows in the extra slot with its rank")
 assert(row2.enchantState=="mismatch")
+--成对槽位：推荐的戒指/饰品戴在另一格也算已装备（交换佩戴两行都应达标）。
+local function ringLink(id) return "|Hitem:"..id..":0:0:0:0:0:0:0:80:71:0:16:1:900|h[Ring "..id.."]|h" end
+data.gearSlots[11]={top3={{itemID=200,usage=.6,bis=true},{itemID=202,usage=.2}}}
+data.gearSlots[12]={top3={{itemID=201,usage=.5},{itemID=202,usage=.2}}}
+owner.slotCache[11]={link=ringLink(201)}
+owner.slotCache[12]={link=ringLink(200)}
+R:Refresh()
+local row11,row12
+for _,r in ipairs(R.panel.gear) do
+    if r.slot==11 then row11=r elseif r.slot==12 then row12=r end
+end
+assert(row11 and row12,"ring rows exist")
+assert(row11.state:GetText()==R.L.bis and row12.state:GetText()==string.format(R.L.topN,1),
+    "swapped rings count as equipped on both rows")
+assert(row11.extra:IsShown() and row11.extra.state:GetText()==string.format(R.L.topN,1),
+    "each row keeps the actually worn ring in the extra slot")
+assert(row12.extra:IsShown() and row12.extra.state:GetText()==R.L.bis)
+--同一饰品推荐两格但只戴一个：只有真正戴着的那格算达标。
+data.gearSlots[13]={top3={{itemID=203,usage=.7,bis=true}}}
+data.gearSlots[14]={top3={{itemID=203,usage=.7,bis=true}}}
+owner.slotCache[13]={link=ringLink(203)}
+owner.slotCache[14]={link=ringLink(999)}
+R:Refresh()
+local row13,row14
+for _,r in ipairs(R.panel.gear) do
+    if r.slot==13 then row13=r elseif r.slot==14 then row14=r end
+end
+assert(row13.state:GetText()==R.L.bis,"worn copy matches its own slot")
+assert(row14.state:GetText()==R.L.bis,
+    "the recommendation worn in the partner slot is not reported as missing")
+assert(row14.extra:IsShown() and row14.extra.state:GetText()==R.L.unlisted,
+    "the actually worn item stays in the extra slot")
+--推荐物品既不在身上也不在背包时，未获取标在主图标（推荐），装备放在副图标。
+local originalCount=C_Item.GetItemCount
+C_Item.GetItemCount=function(id) return id==204 and 0 or 1 end
+data.gearSlots[5]={top3={{itemID=204,usage=.8,bis=true}}}
+owner.slotCache[5]={link=ringLink(205)}
+R:Refresh()
+local row5
+for _,r in ipairs(R.panel.gear) do if r.slot==5 then row5=r end end
+assert(row5 and row5.state:GetText()==R.L.notOwned,"not-owned recommendation marks the main slot")
+assert(row5.extra:IsShown() and row5.extra.state:GetText()==R.L.unlisted,
+    "the equipped item stays in the extra slot")
+C_Item.GetItemCount=originalCount
+owner.slotCache[5]=nil
+--侧栏徽章同样按成对槽位查找名次。
+local badge,ranked=R:GearBadge(data.gearSlots,12,ringLink(200))
+assert(badge==R.L.bis and ranked,"partner-slot bis earns the badge")
+badge,ranked=R:GearBadge(data.gearSlots,11,ringLink(999))
+assert(badge==R.L.unrankedShort and not ranked,"unlisted items stay gray")
+owner.slotCache[11]=nil;owner.slotCache[12]=nil;owner.slotCache[13]=nil;owner.slotCache[14]=nil
 assert(R.panel.stats[1].current==100 and R.panel.stats[1].median==100)
 assert(R.panel.consumableColumns[1].rows[1].quality:IsShown())
 assert(R.panel.gear[1].star:IsShown())

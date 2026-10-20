@@ -399,9 +399,9 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
         if (level > 0) then
             itemframe.levelString:SetText(format("%d", floor(level)))
             local text = FormatInspectItemText(link, name)
-            local slotData = frame.recommendationData and frame.recommendationData.gearSlots[v.index]
+            local gearSlots = frame.recommendationData and frame.recommendationData.gearSlots
             if (recommendations) then
-                local badge, ranked = recommendations:GearBadge(slotData, link)
+                local badge, ranked = recommendations:GearBadge(gearSlots, v.index, link)
                 if (badge) then
                     itemframe.badgeString:SetText("[" .. badge .. "]")
                     itemframe.badgeRanked = ranked
