@@ -96,9 +96,11 @@ LibEvent:attachTrigger("INSPECT_ITEMFRAME_UPDATED", function(this, itemframe)
     for k in pairs(shown) do
         if (itemframe[k]) then itemframe[k]:SetAlpha(0.05) end
     end
-    if (itemframe.link) then
+    if not (issecretvalue and issecretvalue(itemframe.link)) and type(itemframe.link) == "string" then
         local stats = GetItemStats(itemframe.link)
-        for k in pairs(stats) do
+        if issecretvalue and issecretvalue(stats) then return end
+        if issecrettable and issecrettable(stats) then return end
+        for k in pairs(stats or {}) do
             if (shown[k] and itemframe[k]) then
                 itemframe[k]:SetAlpha(1)
             end

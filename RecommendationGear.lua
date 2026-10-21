@@ -8,6 +8,34 @@ local function slotPartner(slot)
     if slot == 16 then return 17 elseif slot == 17 then return 16 end
 end
 
+local function preferredItem(choices, itemID)
+    if not itemID then return end
+    for rank, entry in ipairs(choices or {}) do
+        if entry.itemID == itemID and (rank == 1 or entry.bis) then return entry end
+    end
+end
+
+local function matchScore(choices, itemID)
+    local entry = preferredItem(choices, itemID)
+    return entry and (entry.bis and 3 or 2) or 0
+end
+
+--成对推荐按实际佩戴匹配，一件装备只占一行；相同匹配度保留原顺序。
+local function displayChoices(gearSlots, slot, equipped)
+    local slotData = gearSlots and gearSlots[slot]
+    local choices = slotData and slotData.top3 or {}
+    local partner = slotPartner(slot)
+    local partnerData = partner and gearSlots and gearSlots[partner]
+    local otherChoices = partnerData and partnerData.top3
+    if type(equipped) == "table" and choices[1] and otherChoices and otherChoices[1] then
+        local own, other = equipped[slot], equipped[partner]
+        local direct = matchScore(choices, own) + matchScore(otherChoices, other)
+        local swapped = matchScore(otherChoices, own) + matchScore(choices, other)
+        if swapped > direct then return otherChoices end
+    end
+    return choices
+end
+
 local function equippedAnywhere(equipped, itemID)
     if not itemID then return false end
     if type(equipped) ~= "table" then return equipped == itemID end
@@ -158,14 +186,16 @@ end
 function R:RenderGear(row, equipped)
     local gearSlots = self.data and self.data.gearSlots
     local slot = row.slot
-    local own = type(equipped) == "table" and equipped[slot] or equipped
+    local own = equipped
+    if type(equipped) == "table" then own = equipped[slot] end
     local partner = slotPartner(slot)
     local other = partner and type(equipped) == "table" and equipped[partner] or nil
     row.equippedID = own
     row.equippedPairID = other
     local slotData = gearSlots and gearSlots[slot]
-    row.choices = slotData and slotData.top3 or {}
+    row.choices = displayChoices(gearSlots, slot, equipped)
     local item = row.choices[1]
+    item = preferredItem(row.choices, own) or item
     row.link = nil
     row.displayLink = nil
     row.extra.link = nil

@@ -23,19 +23,15 @@ for path in paths:
     check=runtime.eval("function(text,name) local f,e=loadstring(text,name); if not f then error(e) end end")
     check(path.read_text(encoding="utf-8-sig"),str(path))
 print("All workspace Lua files parse under Lua 5.1")
+data_runtime=LuaRuntime(unpack_returned_tuples=True)
+data_runtime.globals().TEST_DATA_MODULES=data_runtime.table_from([p.relative_to(ROOT).as_posix() for p in sorted((ROOT/"GearData").glob("spec_*.lua"))])
+data_runtime.eval('assert(loadfile("tests/data_loading_runtime.lua"))')()
 for locale in ("enUS","zhCN","zhTW","ruRU","deDE","frFR","esES","esMX","koKR","itIT","ptBR"):
     entry_runtime=LuaRuntime(unpack_returned_tuples=True)
     entry_run=entry_runtime.eval('assert(loadfile("tests/settings_entry_runtime.lua"))')
     entry_run(locale)
     stats_runtime=LuaRuntime(unpack_returned_tuples=True)
-    stats_runtime.globals().GetLocale=lambda:locale
-    stats_runtime.execute('''
-        LibStub={GetLibrary=function() return {} end}
-        function hooksecurefunc(name,fn) STATS_HOOK=name end
-        assert(loadfile("InspectUnitStats.lua"))("InspectForEllesmereUI",{})
-        assert(type(ShowInspectItemStatsFrame)=="function" and STATS_HOOK=="ShowInspectItemListFrame",
-            "Equipment statistics must initialize for every client language")
-    ''')
+    stats_runtime.eval('assert(loadfile("tests/audit_runtime.lua"))')(locale)
     for skin in (False,True):
         runtime=LuaRuntime(unpack_returned_tuples=True)
         if args.database_dir:

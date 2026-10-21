@@ -2,12 +2,13 @@ local _, ns = ...
 local R = ns.Recommendations
 
 function R:StatDisplay(key, data, current)
+    local label = self.L[key] or tostring(key)
     local range = data and data.statRanges and data.statRanges[key]
     local median = range and range.median
     if not median then
-        return self.L[key] .. "  —", nil, current, nil
+        return label .. "  —", nil, current, nil
     end
-    local text = self.L[key] .. "  " .. string.format("%.0f", median)
+    local text = label .. "  " .. string.format("%.0f", median)
     local diff
     if current then
         diff = current - median
@@ -18,7 +19,7 @@ end
 
 function R:StatTooltip(row)
     GameTooltip:SetOwner(row, "ANCHOR_CURSOR")
-    GameTooltip:AddLine(self.L[row.key])
+    GameTooltip:AddLine(self.L[row.key] or tostring(row.key))
     if row.median then
         GameTooltip:AddDoubleLine(self.L.median, string.format("%.0f", row.median), 1,1,1, 1,1,1)
         if row.current then

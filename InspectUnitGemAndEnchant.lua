@@ -274,9 +274,18 @@ hooksecurefunc("ShowInspectItemListFrame", function(unit, parent)
     end
     LibSchedule:RemoveTask(frame.gemTaskKey)
     frame.gemBaseWidth = frame:GetWidth()
-    frame.gemRetryUntil = GetTime() + 4
-    frame.gemRequestedItems = {}
-    if (RefreshGems(frame, false)) then QueueRefresh(frame) end
+    local changed = frame.gemUnit ~= unit
+    frame.gemEquipment = frame.gemEquipment or {}
+    for slot, entry in pairs(frame.slotCache or {}) do
+        if frame.gemEquipment[slot] ~= entry.link then changed = true end
+        frame.gemEquipment[slot] = entry.link
+    end
+    frame.gemUnit = unit
+    if changed or not frame.gemRetryUntil then
+        frame.gemRetryUntil = GetTime() + 4
+        frame.gemRequestedItems = {}
+    end
+    if (RefreshGems(frame, GetTime() >= frame.gemRetryUntil)) then QueueRefresh(frame) end
 end)
 
 --沿用統一事件庫，只刷新可見面板並合併連續物品載入事件。

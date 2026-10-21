@@ -106,7 +106,12 @@ events:RegisterEvent("PLAYER_REGEN_DISABLED")
 events:RegisterEvent("ITEM_DATA_LOAD_RESULT")
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("INSPECT_READY")
+events:RegisterEvent("TRAIT_CONFIG_UPDATED")
+events:RegisterEvent("PLAYER_TALENT_UPDATE")
 events:SetScript("OnEvent", function(_, event, arg)
+    if event == "TRAIT_CONFIG_UPDATED" or event == "PLAYER_TALENT_UPDATE" or event == "PLAYER_SPECIALIZATION_CHANGED" then
+        R.C.InvalidateTraitSelection()
+    end
     if event == "PLAYER_REGEN_DISABLED" then
         R:StopRefresh()
         return

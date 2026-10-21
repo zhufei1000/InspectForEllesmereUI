@@ -31,7 +31,7 @@ function methods:Hide() local was=self.shown;self.shown=false;if was and self.sc
 function methods:IsForbidden() return false end
 function methods:CreateFontString() return setmetatable({scripts={},events={},shown=true},{__index=methods}) end
 function methods:CreateTexture() return self:CreateFontString() end
-for _,key in ipairs({"SetPoint","ClearAllPoints","SetScale","SetTexCoord","SetClampedToScreen","SetFrameStrata","SetBackdrop","SetBackdropColor","SetBackdropBorderColor","SetJustifyH","SetEnabled","EnableMouseWheel","EnableMouse","SetNormalTexture","SetHighlightTexture","SetDesaturated","SetAllPoints","SetColorTexture","SetVertexColor","SetDrawLayer","SetShadowOffset","SetAtlas"}) do methods[key]=function() end end
+for _,key in ipairs({"SetPoint","ClearAllPoints","SetScale","SetTexCoord","SetClampedToScreen","SetFrameStrata","SetBackdrop","SetBackdropColor","SetBackdropBorderColor","SetJustifyH","SetJustifyV","SetEnabled","EnableMouseWheel","EnableMouse","SetNormalTexture","SetHighlightTexture","SetDesaturated","SetAllPoints","SetColorTexture","SetVertexColor","SetDrawLayer","SetShadowOffset","SetAtlas"}) do methods[key]=function() end end
 function CreateFrame(kind,name,parent,template)
     created=created+1
     local f=setmetatable({parent=parent,scripts={},events={},shown=true},{__index=methods})
@@ -91,6 +91,20 @@ assert(loadfile("EllesmereSkin.lua"))("InspectForEllesmereUI",ns)
 for _,file in ipairs({"Locale","Compat","Core","Stats","Sources","Gear","Consumables","Panel"}) do assert(loadfile("Recommendation"..file..".lua"))("InspectForEllesmereUI",ns) end
 local R=ns.Recommendations
 assert(R.C.Number(secret)==nil)
+local originalInventoryLink=GetInventoryItemLink
+GetInventoryItemLink=function() return link end
+assert(R.C.EquippedID(1)==100 and R.C.EquippedEnchantID(1)==8017)
+for _,cache in ipairs({{[1]={}}, {}}) do
+    assert(R.C.EquippedID(1,cache)==nil and R.C.EquippedEnchantID(1,cache)==nil,
+        "target empty or missing snapshot entries never fall back to player equipment")
+end
+assert(R.C.EquippedID(1,{[1]={link=secret}})==nil and R.C.EquippedEnchantID(1,{[1]={link=secret}})==nil)
+GetInventoryItemLink=originalInventoryLink
+local originalSpecInfo=GetSpecializationInfoByID
+GetSpecializationInfoByID=function() return 71,secret,nil,secret end
+local safeSpec,safeSpecName,safeSpecIcon=R.C.Spec("target")
+assert(safeSpec==71 and safeSpecName==nil and safeSpecIcon==nil,"restricted specialization display values are filtered")
+GetSpecializationInfoByID=originalSpecInfo
 C_Spell={GetSpellInfo=function(id)
     if id==1279599 then return {name="Localized trait name"} end
     if id==1286970 then return {name="Scraped effect spell"} end
@@ -110,6 +124,7 @@ trigger("INSPECT_FRAME_CREATED",owner)
 assert(created==count,"duplicate button")
 R:Open(owner)
 assert(R.panel:IsShown() and R.reason==R.L.missing)
+assert(R.panel.status:GetText()==R.L.missing and R.panel.status:IsShown(),"missing-data reason is visible")
 assert(not owner.statsFrame:IsShown())
 R.panel:Hide()
 assert(owner.statsFrame:IsShown(),"stats panel not restored")
@@ -130,6 +145,7 @@ assert(R:Source(100,data)==R.L.tier,"Class-set sources must use the selected loc
 QFXConsumableData={schemaVersion=1,GetRecommendation=function() return {seasonID=18,sampleCount=50,consumables={flask={{itemID=100,spellID=1,usage=1,count=50,sampleCount=50}},weaponOil={{itemID=100,usage=.85,count=42,sampleCount=50}}}} end}
 R:Open(owner)
 assert(R.data==data)
+assert(not R.panel.status:IsShown() and R.panel.stats[1]:IsShown(),"loaded data clears the empty state")
 assert(R.panel.gear[1].state:GetText()==R.L.bis)
 assert(R.panel.updated:GetText()~="")
 assert(R.panel.gear[1].enchantState=="match")
@@ -152,11 +168,95 @@ for _,r in ipairs(R.panel.gear) do
     if r.slot==11 then row11=r elseif r.slot==12 then row12=r end
 end
 assert(row11 and row12,"ring rows exist")
-assert(row11.state:GetText()==R.L.bis and row12.state:GetText()==string.format(R.L.topN,1),
+assert(row11.state:GetText()==string.format(R.L.topN,1) and row12.state:GetText()==R.L.bis,
     "swapped rings count as equipped on both rows")
-assert(row11.extra:IsShown() and row11.extra.state:GetText()==string.format(R.L.topN,1),
-    "each row keeps the actually worn ring in the extra slot")
-assert(row12.extra:IsShown() and row12.extra.state:GetText()==R.L.bis)
+assert(not row11.extra:IsShown() and not row12.extra:IsShown(),
+    "swapped optimal rings do not repeat the equipped items in extra slots")
+assert(row11.choices==data.gearSlots[12].top3 and row12.choices==data.gearSlots[11].top3,
+    "swapped recommendations keep the matching tooltip choices")
+--戒指、饰品、主副手均按两格整体匹配；已达标的一格不遮掉另一格仍需替换的装备。
+local originalItem=R.Item
+function R:Item(id) return "Item "..id,ringLink(id),id end
+for _,pair in ipairs({{11,12},{13,14},{16,17}}) do
+    local first,second=pair[1],pair[2]
+    local a,b=300+first,300+second
+    local firstData={top3={{itemID=a,usage=.8,bis=true}}}
+    local secondData={top3={{itemID=b,usage=.7,bis=true}}}
+    local savedFirst,savedSecond=data.gearSlots[first],data.gearSlots[second]
+    local savedEquipFirst,savedEquipSecond=owner.slotCache[first],owner.slotCache[second]
+    data.gearSlots[first],data.gearSlots[second]=firstData,secondData
+    local firstRow,secondRow
+    for _,row in ipairs(R.panel.gear) do
+        if row.slot==first then firstRow=row elseif row.slot==second then secondRow=row end
+    end
+    for _,swapped in ipairs({false,true}) do
+        owner.slotCache[first]={link=ringLink(swapped and b or a)}
+        owner.slotCache[second]={link=ringLink(swapped and a or b)}
+        R:Refresh()
+        assert(firstRow.link==owner.slotCache[first].link and secondRow.link==owner.slotCache[second].link,
+            "paired main icons follow the equipped order")
+        assert(firstRow.state:GetText()==R.L.bis and secondRow.state:GetText()==R.L.bis)
+        assert(not firstRow.extra:IsShown() and not secondRow.extra:IsShown(),
+            "both optimal items hide their extra slots in either order")
+        tooltipLink=nil;R:GearTooltip(firstRow)
+        assert(tooltipLink==firstRow.link,"paired tooltip follows the displayed item")
+    end
+    owner.slotCache[first]={link=ringLink(999)}
+    owner.slotCache[second]={link=ringLink(a)}
+    R:Refresh()
+    assert(firstRow.link==ringLink(b) and firstRow.extra.link==ringLink(999) and firstRow.extra:IsShown(),
+        "the remaining recommendation compares against the nonoptimal equipped item")
+    assert(secondRow.link==ringLink(a) and not secondRow.extra:IsShown(),
+        "one optimal item in the opposite slot satisfies only its matched row")
+    local savedCount=C_Item.GetItemCount
+    C_Item.GetItemCount=function() return 0 end
+    R:Refresh()
+    assert(firstRow.state:GetText()==R.L.notOwned and secondRow.state:GetText()==R.L.bis,
+        "swapped matching still marks only the missing recommendation as not owned")
+    C_Item.GetItemCount=savedCount
+    owner.slotCache[first]=nil
+    R:Refresh()
+    assert(firstRow.link==ringLink(b) and not firstRow.extra:IsShown(),
+        "an empty partner slot has no phantom equipped item")
+    --BIS 可以位于使用率榜的第二/三名，不应再推荐替换成非 BIS 的 TOP1。
+    firstData.top3={{itemID=a+100,usage=.9},{itemID=a,usage=.8,bis=true}}
+    owner.slotCache[first]={link=ringLink(a)}
+    owner.slotCache[second]={link=ringLink(b)}
+    R:Refresh()
+    assert(firstRow.link==ringLink(a) and firstRow.state:GetText()==R.L.bis and not firstRow.extra:IsShown(),
+        "an equipped BIS below Top1 is already optimal")
+    --两格都推荐同一件时，一件已装备物品不能同时隐藏另一格的对照。
+    secondData.top3=firstData.top3
+    owner.slotCache[second]={link=ringLink(999)}
+    R:Refresh()
+    assert(not firstRow.extra:IsShown() and secondRow.extra:IsShown(),
+        "duplicate recommendation IDs still require a separate equipped copy per row")
+    assert(data.gearSlots[first]==firstData and data.gearSlots[second]==secondData,
+        "matching never rewrites source slot data")
+    --换推荐顺序不换物理附魔栏位；隐藏副图标后星号跟回主图标。
+    firstData.top3={{itemID=a,bis=true}}
+    secondData.top3={{itemID=b,bis=true}}
+    firstData.enchant={itemID=100,enchantID=8017}
+    secondData.enchant={itemID=101,enchantID=8020}
+    owner.slotCache[first]={link=ringLink(b):gsub(":0:",":8020:",1)}
+    owner.slotCache[second]={link=ringLink(a):gsub(":0:",":8017:",1)}
+    local firstAnchor
+    local savedSetPoint=firstRow.star.SetPoint
+    firstRow.star.SetPoint=function(_,_,anchor) firstAnchor=anchor end
+    R:Refresh()
+    firstRow.star.SetPoint=savedSetPoint
+    assert(firstRow.enchant==firstData.enchant and secondRow.enchant==secondData.enchant
+        and firstRow.enchantState=="mismatch" and secondRow.enchantState=="mismatch",
+        "enchant checks remain attached to the physical equipment slots")
+    assert(firstAnchor==firstRow,"the enchant star follows the main icon when the extra icon is hidden")
+    data.gearSlots[second]=nil
+    R:Refresh()
+    assert(firstRow.choices==firstData.top3 and #secondRow.choices==0,
+        "a missing partner recommendation never borrows a main-hand-only list")
+    data.gearSlots[first],data.gearSlots[second]=savedFirst,savedSecond
+    owner.slotCache[first],owner.slotCache[second]=savedEquipFirst,savedEquipSecond
+end
+R.Item=originalItem
 --同一饰品推荐两格但只戴一个：只有真正戴着的那格算达标。
 data.gearSlots[13]={top3={{itemID=203,usage=.7,bis=true}}}
 data.gearSlots[14]={top3={{itemID=203,usage=.7,bis=true}}}
@@ -185,6 +285,23 @@ assert(row5.extra:IsShown() and row5.extra.state:GetText()==R.L.unlisted,
     "the equipped item stays in the extra slot")
 C_Item.GetItemCount=originalCount
 owner.slotCache[5]=nil
+local savedLegData,savedLegItem=data.gearSlots[7],owner.slotCache[7]
+data.gearSlots[7]={top3={{itemID=301,usage=.9},{itemID=302,usage=.8,bis=true}}}
+owner.slotCache[7]={link=ringLink(302)}
+R:Refresh()
+local legRow
+for _,row in ipairs(R.panel.gear) do if row.slot==7 then legRow=row end end
+assert(legRow.state:GetText()==R.L.bis and not legRow.extra:IsShown(),
+    "a single-slot BIS at rank 2 is not replaced by non-BIS Top1")
+data.gearSlots[7],owner.slotCache[7]=savedLegData,savedLegItem
+assert(R:Source(100,nil)==R.L.unknownSource,"missing source data uses the unknown label")
+assert(R:StatDisplay("future_stat",nil)=="future_stat  —","unknown statistic keys have a safe label")
+local savedStatOrder=data.statOrder
+data.statOrder={"crit","future_stat","haste"}
+R:Refresh()
+assert(R.panel.statOrder:GetText()==R.L.crit..">"..R.L.haste,"unknown stat-order entries are skipped")
+data.statOrder=savedStatOrder
+R:Refresh()
 --侧栏徽章同样按成对槽位查找名次。
 local badge,ranked=R:GearBadge(data.gearSlots,12,ringLink(200))
 assert(badge==R.L.bis and ranked,"partner-slot bis earns the badge")
@@ -215,6 +332,15 @@ assert(R.mode=="raid" and sidebarRefreshes==1,"Changing recommendation mode also
 local coreEvents
 for _,frame in ipairs(frames) do if frame.events.PLAYER_SPECIALIZATION_CHANGED then coreEvents=frame end end
 assert(coreEvents)
+local originalRating=GetCombatRating
+GetCombatRating=function() return 150 end
+coreEvents.scripts.OnEvent(coreEvents,"COMBAT_RATING_UPDATE")
+tick()
+assert(R.panel.stats[1].current==150,"a rating event refreshes the open personal comparison")
+GetCombatRating=originalRating
+coreEvents.scripts.OnEvent(coreEvents,"PLAYER_EQUIPMENT_CHANGED",1)
+tick()
+assert(R.panel.stats[1].current==100,"equipment updates recalculate the comparison")
 combat=true
 coreEvents.scripts.OnEvent(coreEvents,"PLAYER_SPECIALIZATION_CHANGED","player")
 assert(R.sidebarDirty and sidebarRefreshes==1,"Specialization refresh is deferred during combat")
@@ -245,7 +371,29 @@ combat=false
 owner:Hide();assert(not R.panel:IsShown())
 owner:Show();owner.unit="target";R:Open(owner);assert(not R.personal)
 data.expiresAt=99;R:Refresh();assert(not R.data and R.reason==R.L.expired)
+assert(R.panel.status:GetText()==R.L.expired and not R.panel.stats[1]:IsShown(),"expired-data reason is visible")
 data.expiresAt=nil;QFXGearData.schemaVersion=999;R:Refresh();assert(R.reason==R.L.incompatible)
+assert(R.panel.status:GetText()==R.L.incompatible,"incompatible-data reason is visible")
+local traitLookups=0
+C_Traits={GetConfigIDBySystemID=function(system)
+    traitLookups=traitLookups+1
+    if system==1 then return 1 end
+end,GetConfigInfo=function() return {treeIDs={1}} end,GetTreeNodes=function() return {1} end,
+    GetNodeInfo=function() return {entryIDs={1},entryIDsWithCommittedRanks={1}} end,
+    GetEntryInfo=function() return {definitionID=1} end,GetDefinitionInfo=function() return {spellID=555} end}
+R.C.InvalidateTraitSelection()
+assert(R.C.TraitSelection({[555]=true})[555])
+local cachedLookups=traitLookups
+assert(R.C.TraitSelection({[555]=true})[555] and traitLookups==cachedLookups,
+    "unchanged talent selection uses the cached result")
+coreEvents.scripts.OnEvent(coreEvents,"TRAIT_CONFIG_UPDATED",1)
+assert(R.C.TraitSelection({[555]=true})[555] and traitLookups>cachedLookups,
+    "trait updates invalidate the selection cache")
+assert(R.C.TraitSelection({[556]=true})==nil)
+cachedLookups=traitLookups
+assert(R.C.TraitSelection({[556]=true})==nil and traitLookups==cachedLookups,
+    "a missing trait system is not scanned again on every refresh")
+C_Traits=nil;R.C.InvalidateTraitSelection()
 if TEST_READ_ADDON then
     R.panel:Hide()
     local realLike=TEST_REAL_DATA or TEST_AGGREGATE_DATA

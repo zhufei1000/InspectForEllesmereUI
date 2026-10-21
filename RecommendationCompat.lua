@@ -17,13 +17,13 @@ function C.Spec(unit)
         local index = api and api.GetSpecialization and api.GetSpecialization()
         if C.Number(index) and index > 0 then
             local id, name, _, icon = api.GetSpecializationInfo(index)
-            if C.Number(id) and id > 0 and C.Safe(name) then return id, name, icon end
+            if C.Number(id) and id > 0 and C.Safe(name) then return id, name, C.Number(icon) end
         end
     elseif api and api.GetInspectSpecialization then
         local id = api.GetInspectSpecialization(unit)
         if C.Number(id) and id > 0 then
             local _, name, _, icon = GetSpecializationInfoByID(id)
-            return id, name, icon
+            return id, C.Safe(name) and name or nil, C.Number(icon)
         end
     end
 end
@@ -104,19 +104,25 @@ function C.SpellName(spellId)
     end
 end
 
+local function equippedLink(slot, cache)
+    if cache then
+        local entry = cache[slot]
+        return entry and entry.link
+    end
+    return GetInventoryItemLink("player", slot)
+end
+
 function C.EquippedID(slot, cache)
     if InCombatLockdown() then return end
-    local entry = cache and cache[slot]
-    local link = entry and entry.link or GetInventoryItemLink("player", slot)
-    if not link or not C.Safe(link) then return end
+    local link = equippedLink(slot, cache)
+    if not C.Safe(link) or type(link) ~= "string" then return end
     return tonumber(link:match("item:(%d+)"))
 end
 
 function C.EquippedEnchantID(slot, cache)
     if InCombatLockdown() then return end
-    local entry = cache and cache[slot]
-    local link = entry and entry.link or GetInventoryItemLink("player", slot)
-    if not link or not C.Safe(link) or type(link) ~= "string" then return end
+    local link = equippedLink(slot, cache)
+    if not C.Safe(link) or type(link) ~= "string" then return end
     return tonumber(link:match("item:%d+:(%d+)")) or 0
 end
 
@@ -186,11 +192,26 @@ function C.OmniumName(spellId, fallback)
     return C.SpellName(C.OmniumTraitID(spellId)) or C.SpellName(spellId) or fallback
 end
 
+local traitCache
+function C.InvalidateTraitSelection()
+    traitCache = nil
+    omniumSystemID = nil
+end
+
 function C.TraitSelection(wantedSpells)
     local traits = C_Traits
     if not (traits and traits.GetConfigIDBySystemID and traits.GetConfigInfo
             and traits.GetTreeNodes and traits.GetNodeInfo) then
         return
+    end
+    local wanted = {}
+    for id in pairs(wantedSpells or {}) do wanted[#wanted+1] = id end
+    table.sort(wanted)
+    local cacheKey = table.concat(wanted, ":")
+    if traitCache and traitCache.key == cacheKey then return traitCache.value end
+    local function remember(value)
+        traitCache = {key=cacheKey, value=value}
+        return value
     end
     local GetConfigInfo, GetTreeNodes, GetNodeInfo = traits.GetConfigInfo, traits.GetTreeNodes, traits.GetNodeInfo
     local GetEntryInfo, GetDefinitionInfo = traits.GetEntryInfo, traits.GetDefinitionInfo
@@ -226,7 +247,7 @@ function C.TraitSelection(wantedSpells)
         local configID = traits.GetConfigIDBySystemID(omniumSystemID)
         if configID then
             local selected, hit = collect(configID)
-            if hit then return selected end
+            if hit then return remember(selected) end
         end
         omniumSystemID = nil
     end
@@ -236,11 +257,11 @@ function C.TraitSelection(wantedSpells)
             local selected, hit = collect(configID)
             if hit then
                 omniumSystemID = systemID
-                return selected
+                return remember(selected)
             end
         end
     end
-    return nil
+    return remember(nil)
 end
 
 function C.SpellSelected(spellId)

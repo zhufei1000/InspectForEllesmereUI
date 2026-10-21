@@ -66,8 +66,9 @@ function methods:SetPoint(...) self.point={...} end
 function methods:SetJustifyV(value) self.justifyV=value end
 function methods:SetJustifyH(value) self.justifyH=value end
 function methods:SetTextColor(...) self.textColor={...} end
+function methods:SetWordWrap(value) self.wordWrap=value end
 function methods:SetVertexColor(...) self.vertexColor={...} end
-for _, method in ipairs({"SetFrameLevel","SetScale","ClearAllPoints","SetTexCoord","SetWordWrap","SetAllPoints","SetAlpha","SetLevel","RegisterEvent","EnableMouse"}) do
+for _, method in ipairs({"SetFrameLevel","SetScale","ClearAllPoints","SetTexCoord","SetAllPoints","SetAlpha","SetLevel","RegisterEvent","EnableMouse"}) do
     methods[method]=function() end
 end
 function CreateFrame(kind,name,parent,template)
@@ -234,6 +235,9 @@ for i=1,16 do
     local row=panel["item"..i]
     assert(row:GetHeight()==panel.item1:GetHeight(),"Uniform row spacing")
     assert(row.levelString:GetWidth()==panel.item1.levelString:GetWidth(),"Shared item-level column")
+    assert(row.label.text.wordWrap==false and row.label.text:GetWidth()>=row.label.text:GetStringWidth(),
+        "slot labels fit on one line using their measured text widths")
+    assert(row.label:GetWidth()==panel.item1.label:GetWidth(),"Slot labels share the same column width")
     assert(row.width==row.itemString.point[4]+row.itemString:GetWidth(),"Each row reserves only its own displayed name width")
     assert(row.itemString.point[4]==panel.item1.itemString.point[4],"Names start in the same column")
     assert(row.itemString.justifyV=="MIDDLE" and row.levelString.justifyV=="MIDDLE" and row.label.text.justifyV=="MIDDLE","Shared vertical text alignment")
@@ -246,6 +250,10 @@ for i=1,16 do
 end
 assert(panel.xicon1.texture.art==1201 and panel.xicon2.texture.art==1202,"Uncached gems render through gem IDs")
 assert(panel.xicon1.itemLink=="item:201" and requested[201]==1)
+local gemDeadline,gemRequests=panel.gemRetryUntil,requested[201]
+ShowInspectItemListFrame("player",parent,321,321)
+assert(panel.gemRetryUntil==gemDeadline and requested[201]==gemRequests,
+    "unchanged equipment refreshes preserve the gem retry window and pending requests")
 assert(panel:GetWidth()>=panel.item1.width+4+16*2+2+36,"All filled gems reserve width")
 if useSkin then assert(panel.xicon1.ppBorder and panel.xicon1.ppBorder[5]==2,"Use EUI pixel borders") end
 local compactParent=CreateFrame("Frame")
@@ -407,4 +415,13 @@ InspectForEllesmereUIDB.ShowGemAndEnchant=false
 ShowInspectItemListFrame("player",parent,321,321)
 assert(not panel.xicon1:IsShown(),"Disabled socket setting clears gems")
 assert(not enchantPanel:IsShown(),"Disabled gem/enchant setting clears enchant labels")
+local secretValue={}
+function issecretvalue(value) return rawequal(value,secretValue) end
+UnitName=function() return secretValue end
+UnitLevel=function() return secretValue end
+GetInventoryItemLink=function() return secretValue end
+function itemInfo:GetUnitItemInfo() return 0,secretValue,secretValue,secretValue,secretValue end
+panel=ShowInspectItemListFrame("player",parent,321,321)
+assert(panel.title.text=="" and panel.slotCache[1].level==0 and panel.slotCache[1].link==nil,
+    "restricted unit names, levels and inventory data never enter the sidebar snapshot")
 print("PASS inspect display "..locale.." "..(useSkin and "EllesmereUI" or "native").."; compact layout, BIS/TOP badges, enchant stars, hydration, swaps, unit isolation and pooling")

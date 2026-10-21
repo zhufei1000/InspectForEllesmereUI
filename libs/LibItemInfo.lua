@@ -3,10 +3,10 @@
 -- 物品信息庫
 ---------------------------------
 
-local MAJOR, MINOR = "LibItemInfo.7000", 8
+local MAJOR, MINOR = "LibItemInfo.7000", 9
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 
-local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
+local GetItemInfoAPI = C_Item and C_Item.GetItemInfo or GetItemInfo
 local GetItemStats = C_Item and C_Item.GetItemStats
 local GetDetailedItemLevelInfoAPI = C_Item and C_Item.GetDetailedItemLevelInfo
 
@@ -16,6 +16,20 @@ local function GetContainerItemLink(bag, slot)
 end
 
 if not lib then return end
+
+local function Readable(value)
+    if issecretvalue and issecretvalue(value) then return nil end
+    return value
+end
+
+local function GetItemInfo(item)
+    local name, link, quality, level, minimum, class, subclass, stack, equipSlot, icon,
+        price, classID, subclassID, bindType, expansionID, setID, reagent = GetItemInfoAPI(item)
+    return Readable(name), Readable(link), Readable(quality), Readable(level), Readable(minimum),
+        Readable(class), Readable(subclass), Readable(stack), Readable(equipSlot), Readable(icon),
+        Readable(price), Readable(classID), Readable(subclassID), Readable(bindType),
+        Readable(expansionID), Readable(setID), Readable(reagent)
+end
 
 local StatTokenToName = {
     ITEM_MOD_STRENGTH_SHORT = ITEM_MOD_STRENGTH_SHORT,
@@ -33,7 +47,7 @@ local StatTokenToName = {
 }
 
 local function GetItemLevelViaAPI(link)
-    local level = GetDetailedItemLevelInfoAPI(link)
+    local level = Readable(GetDetailedItemLevelInfoAPI(link))
     if (type(level) == "number") then
         return level
     end
@@ -41,18 +55,22 @@ local function GetItemLevelViaAPI(link)
 end
 
 function lib:GetStatsViaAPI(link, stats)
+    link = Readable(link)
+    if type(link) ~= "string" then return stats end
     if (type(stats) ~= "table") then
         return stats
     end
     if (type(GetItemStats) ~= "function") then
         return stats
     end
-    local itemStats = GetItemStats(link)
+    local itemStats = Readable(GetItemStats(link))
+    if type(itemStats) == "table" and issecrettable and issecrettable(itemStats) then return stats end
     if (type(itemStats) ~= "table") then
         return stats
     end
     for token, statValue in pairs(itemStats) do
-        if (type(statValue) == "number" and statValue ~= 0) then
+        token, statValue = Readable(token), Readable(statValue)
+        if (type(token) == "string" and type(statValue) == "number" and statValue ~= 0) then
             local statName = StatTokenToName[token] or _G[token] or token
             if (not stats[statName]) then
                 stats[statName] = { value = statValue, r = 0, g = 1, b = 0.2 }
@@ -67,6 +85,7 @@ end
 --物品是否已經本地化
 -- checkGems=true keeps legacy behavior; false speeds up ilevel/stat reads.
 function lib:HasLocalCached(item, checkGems)
+    item = Readable(item)
     if (checkGems == nil) then
         checkGems = true
     end
@@ -92,6 +111,7 @@ end
 
 --獲取物品實際等級信息通過API
 function lib:GetItemInfoViaAPI(link, stats, withoutExtra)
+    link = Readable(link)
     if (not link or link == "") then
         return 0, 0
     end
@@ -132,11 +152,11 @@ end
 
 --獲取UNIT物品實際等級信息（API）
 function lib:GetUnitItemInfo(unit, index, stats)
-    if (not UnitExists(unit)) then return 1, -1 end
-    local link = GetInventoryItemLink(unit, index)
+    if (not Readable(UnitExists(unit))) then return 1, -1 end
+    local link = Readable(GetInventoryItemLink(unit, index))
     if (not link or link == "") then
         -- 檢視同步邊界可能暫時沒有link，標記為未知以便重試
-        if (GetInventoryItemID(unit, index)) then
+        if (Readable(GetInventoryItemID(unit, index))) then
             return 1, 0
         end
         return 0, 0

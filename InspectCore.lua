@@ -15,6 +15,7 @@ local function Readable(value)
     if issecretvalue and issecretvalue(value) then return nil end
     return value
 end
+ns.Readable = Readable
 function ns.GetReadableInspectSpecID(unit)
     if not Readable(unit) or type(GetInspectSpecializationAPI) ~= "function" then return nil end
     local ok, id = pcall(GetInspectSpecializationAPI, unit)
@@ -33,7 +34,7 @@ function ReInspect(unit)
     local data = guids[guid]
     if (not data) then return end
     LibSchedule:AddTask({
-        identity  = guid,
+        identity  = "ReInspect:" .. guid,
         timer     = 0.5,
         elasped   = 0.5,
         expired   = GetTime() + 3,
@@ -67,7 +68,7 @@ function GetInspectSpec(unit)
             specName = select(2, GetSpecializationInfoByID(specID))
         end
     end
-    return specName or ""
+    return Readable(specName) or ""
 end
 
 -- Clear
@@ -117,7 +118,7 @@ LibEvent:attachEvent("INSPECT_READY", function(this, guid)
     if not guid then return end
     if (not guids[guid]) then return end
     LibSchedule:AddTask({
-        identity  = guid,
+        identity  = "InspectReady:" .. guid,
         timer     = 0.3,
         elasped   = 0.3,
         expired   = GetTime() + 5,

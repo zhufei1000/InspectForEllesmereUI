@@ -3,7 +3,8 @@ local addon, ns = ...
 ns = ns or _G.InspectForEllesmereUIDataNS or {}
 _G.InspectForEllesmereUIDataNS = ns
 
-local SEASON_ID = 18
+local RD = {specs = {}, sourcesLoaded = false}
+ns.RecommendationData = RD
 
 local function hasSplit(name)
     local api = _G[name]
@@ -43,9 +44,6 @@ end
 
 ensure("QFXGearData")
 ensure("QFXConsumableData")
-
-local RD = {specs = {}, sourcesLoaded = false}
-ns.RecommendationData = RD
 
 function RD.Load(specID)
     local fn = RD.specs[specID]

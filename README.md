@@ -11,7 +11,7 @@ A World of Warcraft Retail equipment inspection addon with item levels, gems, en
 Download the addon ZIP from Releases, extract its InspectForEllesmereUI folder into _retail_/Interface/AddOns/, and restart the game. The recommendation database is bundled; EllesmereUI is optional.
 
 - 设置命令 / Settings: `/ifeui` 或 `/inspectforellesmereui`
-- 正式服接口 / Retail interfaces: `120100`, `120007`
+- 正式服接口 / Retail interfaces: `120100`, `120007`, `120105`
 - 存档变量 / SavedVariables: `InspectForEllesmereUIDB`, `InspectForEllesmereUICharacterDB`
 - 侧栏标记：绿色 BIS / TOP1–TOP3，灰色 N/R；附魔星号绿色表示符合推荐、红色表示缺失或不同、黄色表示无法判断。
 - 鼠标提示中的职业专精功能已移除。

@@ -120,6 +120,11 @@ function R:CreatePanel()
     panel.statOrder=Text(panel,"GameFontNormalSmall",150,-262,260)
     panel.statOrder:SetJustifyH("CENTER")
     panel.statOrder:SetTextColor(0.9,0.8,0.5)
+    panel.status=Text(panel,nil,150,-300,260)
+    panel.status:SetHeight(100)
+    panel.status:SetJustifyH("CENTER")
+    panel.status:SetJustifyV("MIDDLE")
+    panel.status:Hide()
     panel.stats={}
     local statColors={crit={1,0.35,0.1}, haste={1,0.85,0.2}, mastery={0.6,0.3,1}, versatility={0.2,0.95,0.35}}
     for i,key in ipairs({"crit","haste","mastery","versatility"}) do
@@ -304,7 +309,6 @@ function R:Open(owner)
     panel:Hide()
     self.owner=owner
     self.hiddenStats={}
-    self.ratings=(owner.unit == "player") and self.C.Ratings() or nil
     for frame in pairs(self.frames) do
         local stats=frame.statsFrame
         if stats then
@@ -345,10 +349,13 @@ function R:Refresh()
     else
         panel.updated:SetText("")
     end
+    panel.status:SetText(self.reason or "")
+    if self.reason then panel.status:Show() else panel.status:Hide() end
     for mode,button in pairs(panel.tabs) do button:SetEnabled(mode ~= self.mode) end
     local ratings
     if data then
         if self.personal then
+            self.ratings=self.C.Ratings()
             ratings=self.ratings
         elseif self.owner then
             ratings=self.C.InspectRatings(self.owner.unit)
@@ -357,12 +364,15 @@ function R:Refresh()
     local order=data and data.statOrder
     if order and #order>0 then
         local names={}
-        for _,key in ipairs(order) do names[#names+1]=L[key] end
+        for _,key in ipairs(order) do
+            if type(L[key]) == "string" then names[#names+1]=L[key] end
+        end
         panel.statOrder:SetText(table.concat(names,">"))
     else
         panel.statOrder:SetText("")
     end
     for _,row in ipairs(panel.stats) do
+        if data then row:Show() else row:Hide() end
         local label,median,current,diff=self:StatDisplay(row.key,data,ratings and ratings[row.key])
         row.median,row.current=median,current
         row.text:SetText(label)

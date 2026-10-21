@@ -9,6 +9,97 @@ local addon, ns = ...
 local LibItemInfo = LibStub:GetLibrary("LibItemInfo.7000")
 local GetSpecializationAPI = C_SpecializationInfo and C_SpecializationInfo.GetSpecialization or GetSpecialization
 local GetSpecializationInfoAPI = C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo or GetSpecializationInfo
+local Readable = ns.Readable or function(value)
+    if issecretvalue and issecretvalue(value) then return nil end
+    return value
+end
+
+local allowedStats = {
+    [ITEM_MOD_INTELLECT_SHORT] = true,
+    [ITEM_MOD_STRENGTH_SHORT] = true,
+    [ITEM_MOD_AGILITY_SHORT] = true,
+    [ITEM_MOD_STAMINA_SHORT] = true,
+    [STAT_HASTE] = true,
+    [STAT_MASTERY] = true,
+    [STAT_CRITICAL_STRIKE] = true,
+    [STAT_VERSATILITY] = true,
+    [STAT_AVOIDANCE] = true,
+    [STAT_SPEED] = true,
+    [STAT_LIFESTEAL] = true,
+}
+local statColor = { r = 0, g = 1, b = 0.2 }
+local mainStatColor = { r = 1, g = 0.82, b = 0 }
+local primaryStatToKey = {
+    [1] = ITEM_MOD_STRENGTH_SHORT,
+    [2] = ITEM_MOD_AGILITY_SHORT,
+    [4] = ITEM_MOD_INTELLECT_SHORT,
+}
+local mainStatByClass = {
+    DEATHKNIGHT = ITEM_MOD_STRENGTH_SHORT,
+    DEMONHUNTER = ITEM_MOD_AGILITY_SHORT,
+    DRUID = ITEM_MOD_AGILITY_SHORT,
+    EVOKER = ITEM_MOD_INTELLECT_SHORT,
+    HUNTER = ITEM_MOD_AGILITY_SHORT,
+    MAGE = ITEM_MOD_INTELLECT_SHORT,
+    MONK = ITEM_MOD_AGILITY_SHORT,
+    PALADIN = ITEM_MOD_STRENGTH_SHORT,
+    PRIEST = ITEM_MOD_INTELLECT_SHORT,
+    ROGUE = ITEM_MOD_AGILITY_SHORT,
+    SHAMAN = ITEM_MOD_INTELLECT_SHORT,
+    WARLOCK = ITEM_MOD_INTELLECT_SHORT,
+    WARRIOR = ITEM_MOD_STRENGTH_SHORT,
+}
+local mainStatBySpecID = {
+    [65] = ITEM_MOD_INTELLECT_SHORT, -- Holy Paladin
+    [1480] = ITEM_MOD_INTELLECT_SHORT, -- Devourer Demon Hunter
+    [262] = ITEM_MOD_INTELLECT_SHORT, -- Elemental Shaman
+    [263] = ITEM_MOD_AGILITY_SHORT, -- Enhancement Shaman
+    [264] = ITEM_MOD_INTELLECT_SHORT, -- Restoration Shaman
+    [270] = ITEM_MOD_INTELLECT_SHORT, -- Mistweaver Monk
+    [102] = ITEM_MOD_INTELLECT_SHORT, -- Balance Druid
+    [105] = ITEM_MOD_INTELLECT_SHORT, -- Restoration Druid
+}
+local function GetStatValueFromUnit(stats, key, unitToken)
+    local entry = stats and stats[key]
+    local statValue = entry and Readable(entry.value)
+    if statValue ~= nil then
+        return statValue
+    end
+    if (key == ITEM_MOD_STAMINA_SHORT) then
+        local _, value = UnitStat(unitToken, 3)
+        return Readable(value)
+    elseif (key == ITEM_MOD_INTELLECT_SHORT) then
+        local _, value = UnitStat(unitToken, 4)
+        return Readable(value)
+    elseif (key == ITEM_MOD_STRENGTH_SHORT) then
+        local _, value = UnitStat(unitToken, 1)
+        return Readable(value)
+    elseif (key == ITEM_MOD_AGILITY_SHORT) then
+        local _, value = UnitStat(unitToken, 2)
+        return Readable(value)
+    end
+end
+local function GetMainStatKey(unitToken)
+    if (unitToken == "player" and type(GetSpecializationAPI) == "function" and type(GetSpecializationInfoAPI) == "function") then
+        local specIndex = Readable(GetSpecializationAPI())
+        if (specIndex) then
+            local specID, _, _, _, _, primaryStat = GetSpecializationInfoAPI(specIndex)
+            specID, primaryStat = Readable(specID), Readable(primaryStat)
+            if (primaryStatToKey[primaryStat]) then
+                return primaryStatToKey[primaryStat]
+            end
+            if (mainStatBySpecID[specID]) then
+                return mainStatBySpecID[specID]
+            end
+        end
+    end
+    if unitToken ~= "player" and ns.GetReadableInspectSpecID then
+        local specID = ns.GetReadableInspectSpecID(unitToken)
+        if mainStatBySpecID[specID] then return mainStatBySpecID[specID] end
+    end
+    local _, classFile = UnitClass(unitToken)
+    return mainStatByClass[Readable(classFile)]
+end
 
 function ShowInspectItemStatsFrame(frame, unit)
     if (not frame.expandButton) then
@@ -41,85 +132,6 @@ function ShowInspectItemStatsFrame(frame, unit)
         ns.Skin.Panel(statsFrame)
     end
     if (not frame.statsFrame:IsShown()) then return end
-    local allowedStats = {
-        [ITEM_MOD_INTELLECT_SHORT] = true,
-        [ITEM_MOD_STRENGTH_SHORT] = true,
-        [ITEM_MOD_AGILITY_SHORT] = true,
-        [ITEM_MOD_STAMINA_SHORT] = true,
-        [STAT_HASTE] = true,
-        [STAT_MASTERY] = true,
-        [STAT_CRITICAL_STRIKE] = true,
-        [STAT_VERSATILITY] = true,
-        [STAT_AVOIDANCE] = true,
-        [STAT_SPEED] = true,
-        [STAT_LIFESTEAL] = true,
-    }
-    local statColor = { r = 0, g = 1, b = 0.2 }
-    local mainStatColor = { r = 1, g = 0.82, b = 0 }
-    local primaryStatToKey = {
-        [1] = ITEM_MOD_STRENGTH_SHORT,
-        [2] = ITEM_MOD_AGILITY_SHORT,
-        [4] = ITEM_MOD_INTELLECT_SHORT,
-    }
-    local mainStatByClass = {
-        DEATHKNIGHT = ITEM_MOD_STRENGTH_SHORT,
-        DEMONHUNTER = ITEM_MOD_AGILITY_SHORT,
-        DRUID = ITEM_MOD_AGILITY_SHORT,
-        EVOKER = ITEM_MOD_INTELLECT_SHORT,
-        HUNTER = ITEM_MOD_AGILITY_SHORT,
-        MAGE = ITEM_MOD_INTELLECT_SHORT,
-        MONK = ITEM_MOD_AGILITY_SHORT,
-        PALADIN = ITEM_MOD_STRENGTH_SHORT,
-        PRIEST = ITEM_MOD_INTELLECT_SHORT,
-        ROGUE = ITEM_MOD_AGILITY_SHORT,
-        SHAMAN = ITEM_MOD_INTELLECT_SHORT,
-        WARLOCK = ITEM_MOD_INTELLECT_SHORT,
-        WARRIOR = ITEM_MOD_STRENGTH_SHORT,
-    }
-    local mainStatBySpecID = {
-        [65] = ITEM_MOD_INTELLECT_SHORT, -- Holy Paladin
-        [1480] = ITEM_MOD_INTELLECT_SHORT, -- Devourer Demon Hunter
-        [262] = ITEM_MOD_INTELLECT_SHORT, -- Elemental Shaman
-        [263] = ITEM_MOD_AGILITY_SHORT, -- Enhancement Shaman
-        [264] = ITEM_MOD_INTELLECT_SHORT, -- Restoration Shaman
-        [270] = ITEM_MOD_INTELLECT_SHORT, -- Mistweaver Monk
-        [102] = ITEM_MOD_INTELLECT_SHORT, -- Balance Druid
-        [105] = ITEM_MOD_INTELLECT_SHORT, -- Restoration Druid
-    }
-    local function GetStatValueFromUnit(stats, key, unitToken)
-        if (stats and stats[key] and stats[key].value) then
-            return stats[key].value
-        end
-        if (key == ITEM_MOD_STAMINA_SHORT) then
-            local _, value = UnitStat(unitToken, 3)
-            return value
-        elseif (key == ITEM_MOD_INTELLECT_SHORT) then
-            local _, value = UnitStat(unitToken, 4)
-            return value
-        elseif (key == ITEM_MOD_STRENGTH_SHORT) then
-            local _, value = UnitStat(unitToken, 1)
-            return value
-        elseif (key == ITEM_MOD_AGILITY_SHORT) then
-            local _, value = UnitStat(unitToken, 2)
-            return value
-        end
-    end
-    local function GetMainStatKey(unitToken)
-        if (unitToken == "player" and type(GetSpecializationAPI) == "function" and type(GetSpecializationInfoAPI) == "function") then
-            local specIndex = GetSpecializationAPI()
-            if (specIndex) then
-                local specID, _, _, _, _, primaryStat = GetSpecializationInfoAPI(specIndex)
-                if (primaryStatToKey[primaryStat]) then
-                    return primaryStatToKey[primaryStat]
-                end
-                if (mainStatBySpecID[specID]) then
-                    return mainStatBySpecID[specID]
-                end
-            end
-        end
-        local _, classFile = UnitClass(unitToken)
-        return mainStatByClass[classFile]
-    end
     local function EnsureStatRow(index)
         local row = frame.statsFrame["stat"..index]
         if (row) then
@@ -140,13 +152,19 @@ function ShowInspectItemStatsFrame(frame, unit)
         frame.statsFrame["stat"..index] = row
         return row
     end
-    local inspectStats, playerStats = {}, {}
-    local _, inspectItemLevel = LibItemInfo:GetUnitItemLevel(unit, inspectStats)
+    local inspectStats, playerStats = frame.itemStats or {}, {}
+    local inspectItemLevel = frame.itemLevel
+    if not inspectItemLevel then
+        inspectStats = {}
+        local _
+        _, inspectItemLevel = LibItemInfo:GetUnitItemLevel(unit, inspectStats)
+    end
     local _, playerItemLevel  = LibItemInfo:GetUnitItemLevel("player", playerStats)
     local baseInfo = {}
-    table.insert(baseInfo, {label = LEVEL, iv = UnitLevel(unit), pv = UnitLevel("player") })
+    table.insert(baseInfo, {label = LEVEL, iv = Readable(UnitLevel(unit)) or "-", pv = Readable(UnitLevel("player")) or "-" })
     table.insert(baseInfo, {label = STAT_AVERAGE_ITEM_LEVEL, iv = format("%.1f",inspectItemLevel), pv = format("%.1f",playerItemLevel) })
-    table.insert(baseInfo, {label = HEALTH, iv = AbbreviateLargeNumbers(UnitHealthMax(unit)), pv = AbbreviateLargeNumbers(UnitHealthMax("player")) })
+    local inspectHealth, playerHealth = Readable(UnitHealthMax(unit)), Readable(UnitHealthMax("player"))
+    table.insert(baseInfo, {label = HEALTH, iv = inspectHealth and AbbreviateLargeNumbers(inspectHealth) or "-", pv = playerHealth and AbbreviateLargeNumbers(playerHealth) or "-" })
     -- Disabled for now: querying inspected-unit mana in this paperdoll path can taint.
     -- local inspectMana = UnitPowerMax(unit, 0) or 0
     -- local playerMana = UnitPowerMax("player", 0) or 0
@@ -165,11 +183,12 @@ function ShowInspectItemStatsFrame(frame, unit)
         index = index + 1
     end
     local playerMain = GetMainStatKey("player")
-    local inspectMain = playerMain
+    local inspectMain = GetMainStatKey(unit)
     local orderedKeys = {}
     if (playerMain) then
         table.insert(orderedKeys, playerMain)
     end
+    if inspectMain and inspectMain ~= playerMain then table.insert(orderedKeys, inspectMain) end
     local secondaryKeys = {
         STAT_CRITICAL_STRIKE,
         STAT_HASTE,

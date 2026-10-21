@@ -2,6 +2,7 @@ local _, ns = ...
 local R = ns.Recommendations
 
 function R:Source(itemID, data)
+    if not data then return self.L.unknownSource end
     local api = _G.QFXGearData
     local sources = api and api.itemSources and api.itemSources[itemID]
     local labels = {}

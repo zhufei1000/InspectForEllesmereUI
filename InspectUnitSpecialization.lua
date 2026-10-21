@@ -42,8 +42,10 @@ hooksecurefunc("ShowInspectItemListFrame", function(unit, parent, itemLevel, max
             _, specName, _, specIcon = GetSpecializationInfoByID(specID)
         end
     end
+    if issecretvalue and issecretvalue(specIcon) then specIcon = nil end
+    if issecretvalue and issecretvalue(specName) then specName = nil end
     if (specIcon) then
-        frame.spectext:SetText(specName)
+        frame.spectext:SetText(specName or "")
         frame.specicon:SetTexture(specIcon)
         frame.specicon:Show()
     else

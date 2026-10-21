@@ -13,6 +13,10 @@ local GetItemSetInfoAPI = C_Item.GetItemSetInfo
 local GetLootJournalItemSetItemsAPI = C_LootJournal.GetItemSetItems
 local GetItemQualityColorAPI = C_Item and C_Item.GetItemQualityColor or GetItemQualityColor
 local L = ns.L or {}
+local Readable = ns.Readable or function(value)
+    if issecretvalue and issecretvalue(value) then return nil end
+    return value
+end
 
 --bliz func
 --裝備清單
@@ -287,6 +291,7 @@ local function GetInspectItemListFrame(parent)
             itemframe.label.text:SetSize(34, 16)
             itemframe.label.text:SetPoint("CENTER", 0, 0)
             itemframe.label.text:SetJustifyV("MIDDLE")
+            itemframe.label.text:SetWordWrap(false)
             itemframe.label.text:SetText(v.name)
             itemframe.label.text:SetTextColor(0, 0.9, 0.9)
             itemframe.levelString = itemframe:CreateFontString(nil, "ARTWORK", itemfont)
@@ -369,11 +374,11 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
     frame.unit = unit
     local recommendations = ns.Recommendations
     frame.recommendationData = recommendations and recommendations:SidebarData(unit) or nil
-    frame.portrait:SetLevel(UnitLevel(unit))
+    frame.portrait:SetLevel(Readable(UnitLevel(unit)) or 0)
     frame.portrait.PortraitRingQuality:SetVertexColor(color.r, color.g, color.b)
     frame.portrait.LevelBorder:SetVertexColor(color.r, color.g, color.b)
     SetPortraitTexture(frame.portrait.Portrait, unit)
-    frame.title:SetText(UnitName(unit) or "")
+    frame.title:SetText(Readable(UnitName(unit)) or "")
     frame.title:SetTextColor(color.r, color.g, color.b)
     frame.setSummary:SetText("")
     frame.setSummary:Hide()
@@ -382,11 +387,18 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
     local width = max(160, floor(frame.title:GetStringWidth()) + 70)
     --槽位数据缓存（面板复用、观察新人时覆盖，天然有界）
     frame.slotCache = frame.slotCache or {}
+    frame.itemStats = frame.itemStats or {}
+    for key in pairs(frame.itemStats) do frame.itemStats[key] = nil end
+    frame.itemLevel = Readable(ilevel)
     for i, v in ipairs(slots) do
-        _, level, name, link, quality = LibItemInfo:GetUnitItemInfo(unit, v.index)
+        _, level, name, link, quality = LibItemInfo:GetUnitItemInfo(unit, v.index, frame.itemStats)
+        level, name, link, quality = Readable(level), Readable(name), Readable(link), Readable(quality)
+        level = type(level) == "number" and level or 0
         --保留裝備實例的完整寶石/製作品質資料，不依賴 GetItemInfo 返回的展示連結。
-        link = GetInventoryItemLink(unit, v.index) or link
-        frame.slotCache[v.index] = { level = level, name = name, link = link, quality = quality }
+        link = Readable(GetInventoryItemLink(unit, v.index)) or link
+        local entry = frame.slotCache[v.index] or {}
+        entry.level, entry.name, entry.link, entry.quality = level, name, link, quality
+        frame.slotCache[v.index] = entry
         itemframe = frame["item"..i]
         itemframe.name = name
         itemframe.link = link
@@ -455,20 +467,27 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
     local labelWidth, badgeWidth, digitCount = 0, 0, 3
     for i in ipairs(slots) do
         local row = frame["item"..i]
-        labelWidth = max(labelWidth, row.label:GetWidth())
+        labelWidth = max(labelWidth, row.label.text:GetStringWidth() + 4)
         badgeWidth = max(badgeWidth, row.badgeString:GetStringWidth())
         digitCount = max(digitCount, #(row.levelString:GetText() or ""))
     end
     local measure = EnsureLevelDigit(frame.item1, 1)
     measure:SetWidth(0)
-    local digitWidth, digitAdvance = 0, 0
-    for digit = 0, 9 do
-        measure:SetText(tostring(digit))
-        digitWidth = max(digitWidth, measure:GetStringWidth())
-        --連續數字平均寬度排除單一字串邊界留白，保留正常數字的緊湊字距。
-        measure:SetText(string.rep(tostring(digit), 10))
-        digitAdvance = max(digitAdvance, measure:GetStringWidth() / 10)
+    local font, fontSize, fontFlags = measure:GetFont()
+    local scale = frame.GetEffectiveScale and frame:GetEffectiveScale() or 1
+    local metrics = frame.digitMetrics
+    if not metrics or metrics.font ~= font or metrics.size ~= fontSize or metrics.flags ~= fontFlags or metrics.scale ~= scale then
+        metrics = {font=font, size=fontSize, flags=fontFlags, scale=scale, width=0, advance=0}
+        for digit = 0, 9 do
+            measure:SetText(tostring(digit))
+            metrics.width = max(metrics.width, measure:GetStringWidth())
+            --連續數字平均寬度排除單一字串邊界留白，保留正常數字的緊湊字距。
+            measure:SetText(string.rep(tostring(digit), 10))
+            metrics.advance = max(metrics.advance, measure:GetStringWidth() / 10)
+        end
+        frame.digitMetrics = metrics
     end
+    local digitWidth, digitAdvance = metrics.width, metrics.advance
     digitAdvance = ns.Skin.Pixel(digitAdvance, frame, "ceil")
     digitWidth = ns.Skin.Pixel(max(digitWidth, digitAdvance), frame, "ceil")
     local levelWidth = digitWidth + digitAdvance * (digitCount - 1)
@@ -479,6 +498,8 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
     for i in ipairs(slots) do
         local row = frame["item"..i]
         local nameWidth = ns.Skin.Pixel(min(260, row.itemString:GetStringWidth()), frame, "ceil")
+        row.label:SetWidth(labelWidth)
+        row.label.text:SetWidth(labelWidth - 4)
         row.levelString:SetWidth(levelWidth)
         row.levelString:ClearAllPoints()
         row.levelString:SetPoint("LEFT", row, "LEFT", levelX, 0)

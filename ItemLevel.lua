@@ -42,18 +42,14 @@ local GetItemQualityColorAPI = C_Item and C_Item.GetItemQualityColor or GetItemQ
 local IsEquippableItemAPI = C_Item and C_Item.IsEquippableItem or IsEquippableItem
 local IsArtifactPowerItemAPI = C_Item and C_Item.IsArtifactPowerItem or IsArtifactPowerItem
 local GetInventoryItemDurability = GetInventoryItemDurability
+local itemLevelTaskKeys, nextItemLevelTask = setmetatable({}, {__mode="k"}), 0
 
 local function SafeNumber(value, fallback)
+    if issecretvalue and issecretvalue(value) then return fallback end
     if (type(value) ~= "number") then
         return fallback
     end
-    local ok, normalized = pcall(function()
-        return value + 0
-    end)
-    if (ok and type(normalized) == "number") then
-        return normalized
-    end
-    return fallback
+    return value
 end
 
 local function SafeGetSize(frame, fallbackW, fallbackH)
@@ -73,7 +69,8 @@ local function SafeIsEquippableItem(link)
         return false
     end
     local ok, equippable = pcall(IsEquippableItemAPI, link)
-    return ok and equippable or false
+    if not ok or (issecretvalue and issecretvalue(equippable)) then return false end
+    return equippable
 end
 
 
@@ -151,21 +148,27 @@ end
 --部分裝備無法一次讀取
 local function SetItemLevelScheduled(button, ItemLevelFrame, link)
     if (not string.match(link, "item:(%d+):")) then return end
+    if not itemLevelTaskKeys[button] then
+        nextItemLevelTask = nextItemLevelTask + 1
+        itemLevelTaskKeys[button] = "InspectForEllesmereUIItemLevel:" .. nextItemLevelTask
+    end
     LibSchedule:AddTask({
-        identity  = link,
+        identity  = itemLevelTaskKeys[button],
+        link      = link,
+        override  = true,
         elasped   = 1,
         expired   = GetTime() + 3,
         frame     = ItemLevelFrame,
         button    = button,
         onTimeout = function(self)
             --任务超时后清理悬挂状态，避免按钮一直处于待加载标记
-            self.button.PendingItemLevelLink = nil
+            if self.button.PendingItemLevelLink == self.link then self.button.PendingItemLevelLink = nil end
         end,
         onExecute = function(self)
-            if (self.button.PendingItemLevelLink ~= self.identity) then
+            if (self.button.PendingItemLevelLink ~= self.link) then
                 return true
             end
-            local count, level, _, _, quality, _, _, class, _, _, equipSlot = LibItemInfo:GetItemInfo(self.identity)
+            local count, level, _, _, quality, _, _, class, _, _, equipSlot = LibItemInfo:GetItemInfo(self.link)
             if (count == 0) then
                 SetItemLevelString(self.frame.levelString, level > 0 and level or "", quality)
                 SetItemSlotString(self.frame.slotString, class, equipSlot, link)
@@ -173,7 +176,7 @@ local function SetItemLevelScheduled(button, ItemLevelFrame, link)
                 self.button.OrigItemQuality = quality
                 self.button.OrigItemClass = class
                 self.button.OrigItemEquipSlot = equipSlot
-                self.button.OrigItemLink = self.identity
+                self.button.OrigItemLink = self.link
                 self.button.PendingItemLevelLink = nil
                 return true
             end
@@ -184,9 +187,11 @@ end
 --設置物品等級
 local function SetItemLevel(self, link, category, BagID, SlotID)
     if (not self) then return end
+    if issecretvalue and issecretvalue(link) then link = nil end
     if (tonumber(link)) then
         link = select(2, GetItemInfoAPI(link))
     end
+    if issecretvalue and issecretvalue(link) then link = nil end
     if (not link or type(link) ~= "string" or not string.match(link, "item:(%d+):")) then
         --非物品/无效链接：仅在已创建框架时清空，不为材料等按钮创建UI对象
         if (self.ItemLevelFrame) then
@@ -211,6 +216,12 @@ local function SetItemLevel(self, link, category, BagID, SlotID)
     local level = ""
     local _, count, quality, class, subclass, equipSlot
     _, _, quality, _, _, class, subclass, _, equipSlot = GetItemInfoAPI(link)
+    if issecretvalue then
+        if issecretvalue(quality) then quality = nil end
+        if issecretvalue(class) then class = nil end
+        if issecretvalue(subclass) then subclass = nil end
+        if issecretvalue(equipSlot) then equipSlot = nil end
+    end
     --除了装备和圣物外,其它不显示装等（先判断再创建框架）
     local showable = (((equipSlot and string.find(equipSlot, "INVTYPE_")) and SafeIsEquippableItem(link))
         or (subclass and string.find(subclass, RELICSLOT))
