@@ -1,7 +1,7 @@
 ## Interface: 120100, 120007, 120105
 ## Title: Inspect for EllesmereUI
-## Version: v2.3.21
-## LastUpdated: 2026-10-23
+## Version: v2.3.22
+## LastUpdated: 2026-10-24
 ## Notes: Item level, gear inspect, gems, enchants, durability and gear recommendations
 ## Notes-zhCN: 装等观察、装备检视、宝石附魔、耐久度与装备推荐
 ## Notes-zhTW: 裝等觀察、裝備檢視、寶石附魔、耐久度與裝備推薦
