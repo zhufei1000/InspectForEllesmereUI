@@ -1,5 +1,6 @@
 -- Regression coverage for item prefixes, socket hydration and pooled gem frames.
 local locale, useSkin = ...
+local greenState = TEST_GREEN_STATE and locale:sub(1,2) == "zh"
 local ns = {}
 local clock, combat, created = 0, false, 0
 function GetLocale() return locale end
@@ -8,6 +9,7 @@ function time() return 100 end
 function InCombatLockdown() return combat end
 function issecretvalue() return false end
 strmatch = string.match
+strlen, strsub = string.len, string.sub
 format = string.format
 tinsert, tremove = table.insert, table.remove
 min, max, floor, abs = math.min, math.max, math.floor, math.abs
@@ -68,7 +70,7 @@ function methods:SetJustifyH(value) self.justifyH=value end
 function methods:SetTextColor(...) self.textColor={...} end
 function methods:SetWordWrap(value) self.wordWrap=value end
 function methods:SetVertexColor(...) self.vertexColor={...} end
-for _, method in ipairs({"SetFrameLevel","SetScale","ClearAllPoints","SetTexCoord","SetAllPoints","SetAlpha","SetLevel","RegisterEvent","EnableMouse"}) do
+for _, method in ipairs({"SetFrameLevel","SetScale","ClearAllPoints","SetTexCoord","SetAllPoints","SetAlpha","SetLevel","RegisterEvent","EnableMouse","SetShadowOffset","SetShadowColor"}) do
     methods[method]=function() end
 end
 function CreateFrame(kind,name,parent,template)
@@ -153,7 +155,7 @@ C_TradeSkillUI={GetItemCraftedQualityInfo=function(link)
     local quality=equipment[idOf(link)].crafted
     if quality then return {quality=quality,iconChat="Professions-ChatIcon-Quality-Tier"..quality} end
 end}
-InspectForEllesmereUIDB={ShowGemAndEnchant=true, ShowUpgradeInfo=true}
+InspectForEllesmereUIDB={ShowGemAndEnchant=true, ShowUpgradeInfo=true, ShowPluginGreenState=greenState}
 assert(loadfile("libs/LibStub.lua"))()
 assert(loadfile("libs/LibEvent.lua"))()
 assert(loadfile("libs/LibSchedule.lua"))()
@@ -189,6 +191,7 @@ end
 assert(loadfile("EllesmereSkin.lua"))("InspectForEllesmereUI",ns)
 assert(loadfile("InspectUnit.lua"))("InspectForEllesmereUI",ns)
 assert(loadfile("InspectUnitGemAndEnchant.lua"))("InspectForEllesmereUI",ns)
+assert(loadfile("PluginGreenState.lua"))("InspectForEllesmereUI",ns)
 C_SpecializationInfo={GetSpecialization=function() return 1 end,GetSpecializationInfo=function() return 71,"Arms",nil,123 end,
     GetInspectSpecialization=function() return 72 end}
 function GetSpecializationInfoByID() return 72,"Fury",nil,123 end
@@ -238,6 +241,16 @@ for i=1,16 do
     assert(row.label.text.wordWrap==false and row.label.text:GetWidth()>=row.label.text:GetStringWidth(),
         "slot labels fit on one line using their measured text widths")
     assert(row.label:GetWidth()==panel.item1.label:GetWidth(),"Slot labels share the same column width")
+    if greenState then
+        for _, key in ipairs({"ITEM_MOD_HASTE_RATING_SHORT","ITEM_MOD_MASTERY_RATING_SHORT","ITEM_MOD_CRIT_RATING_SHORT","ITEM_MOD_VERSATILITY"}) do
+            local prefix = assert(row[key], "Enabled stat prefixes exist")
+            local right = prefix.point[2] + prefix:GetWidth()
+            assert(row.label:GetWidth() >= right, "Prefix column contains every stat box")
+            assert(row.levelDigits[1].point[4] >= right + 3, "Item level starts after every stat box with a gap")
+        end
+    else
+        assert(not row.ITEM_MOD_HASTE_RATING_SHORT, "Disabled or unsupported stat prefixes leave slot labels intact")
+    end
     assert(row.width==row.itemString.point[4]+row.itemString:GetWidth(),"Each row reserves only its own displayed name width")
     assert(row.itemString.point[4]==panel.item1.itemString.point[4],"Names start in the same column")
     assert(row.itemString.justifyV=="MIDDLE" and row.levelString.justifyV=="MIDDLE" and row.label.text.justifyV=="MIDDLE","Shared vertical text alignment")
@@ -424,4 +437,4 @@ function itemInfo:GetUnitItemInfo() return 0,secretValue,secretValue,secretValue
 panel=ShowInspectItemListFrame("player",parent,321,321)
 assert(panel.title.text=="" and panel.slotCache[1].level==0 and panel.slotCache[1].link==nil,
     "restricted unit names, levels and inventory data never enter the sidebar snapshot")
-print("PASS inspect display "..locale.." "..(useSkin and "EllesmereUI" or "native").."; compact layout, BIS/TOP badges, enchant stars, hydration, swaps, unit isolation and pooling")
+print("PASS inspect display "..locale.." "..(useSkin and "EllesmereUI" or "native").."; green prefixes="..tostring(not not greenState)..", compact layout, BIS/TOP badges, enchant stars, hydration, swaps, unit isolation and pooling")

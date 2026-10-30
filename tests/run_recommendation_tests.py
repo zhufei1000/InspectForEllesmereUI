@@ -59,6 +59,8 @@ for locale in ("enUS","zhCN","zhTW","ruRU","deDE","frFR","esES","esMX","koKR","i
             runtime.globals().TEST_READ_ADDON=read_lazy
         run=runtime.eval('assert(loadfile("tests/recommendation_runtime.lua"))')
         run(locale,skin)
-        display_runtime=LuaRuntime(unpack_returned_tuples=True)
-        display_run=display_runtime.eval('assert(loadfile("tests/inspect_display_runtime.lua"))')
-        display_run(locale,skin)
+        for green_state in (False,True) if locale in ("zhCN","zhTW") else (False,):
+            display_runtime=LuaRuntime(unpack_returned_tuples=True)
+            display_runtime.globals().TEST_GREEN_STATE=green_state
+            display_run=display_runtime.eval('assert(loadfile("tests/inspect_display_runtime.lua"))')
+            display_run(locale,skin)

@@ -467,7 +467,7 @@ function ShowInspectItemListFrame(unit, parent, ilevel, maxLevel)
     local labelWidth, badgeWidth, digitCount = 0, 0, 3
     for i in ipairs(slots) do
         local row = frame["item"..i]
-        labelWidth = max(labelWidth, row.label.text:GetStringWidth() + 4)
+        labelWidth = max(labelWidth, row.prefixWidth or 0, row.label.text:GetStringWidth() + 4)
         badgeWidth = max(badgeWidth, row.badgeString:GetStringWidth())
         digitCount = max(digitCount, #(row.levelString:GetText() or ""))
     end
