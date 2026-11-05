@@ -1,0 +1,39 @@
+name: CurseForge cleanup
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: CurseForge project ID
+        required: true
+        default: '1735274'
+        type: string
+      file_id:
+        description: CurseForge file ID to delete
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  delete-file:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Delete file
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          PROJECT_ID: ${{ inputs.project_id }}
+          FILE_ID: ${{ inputs.file_id }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CF_API_TOKEN" ]; then
+            echo "CF_API_TOKEN is not configured" >&2
+            exit 1
+          fi
+          curl --fail-with-body -sS -X DELETE \
+            -H "X-Api-Token: $CF_API_TOKEN" \
+            -H "User-Agent: InspectForEllesmereUI-release" \
+            -w "\nHTTP %{http_code}\n" \
+            "https://wow.curseforge.com/api/projects/$PROJECT_ID/files/$FILE_ID"
