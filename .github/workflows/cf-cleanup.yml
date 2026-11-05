@@ -32,8 +32,7 @@ jobs:
             echo "CF_API_TOKEN is not configured" >&2
             exit 1
           fi
-          curl --fail-with-body -sS -X DELETE \
+          curl -sS -i -X DELETE \
             -H "X-Api-Token: $CF_API_TOKEN" \
             -H "User-Agent: InspectForEllesmereUI-release" \
-            -w "\nHTTP %{http_code}\n" \
             "https://wow.curseforge.com/api/projects/$PROJECT_ID/files/$FILE_ID"
