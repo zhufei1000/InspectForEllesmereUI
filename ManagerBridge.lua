@@ -164,19 +164,14 @@ if type(nativeSlash) == "function" then
     end
 end
 
--- 游戏设置分类接管：打开原生分类时跳转到管理中心扩展栏。
-local settingsFrame = ns.SettingsFrame
-if settingsFrame and type(settingsFrame.HookScript) == "function" then
-    settingsFrame:HookScript("OnShow", function(self)
-        -- Ancestor visibility changes also fire OnShow; only a canvas hosted
-        -- by the visible native settings window represents a settings entry.
-        local parent = self:GetParent()
-        while parent do
-            if parent == rawget(_G, "SettingsPanel") or parent == rawget(_G, "InterfaceOptionsFrame") then
-                if parent:IsVisible() and ns.TryOpenManager() then self:Hide() end
-                return
-            end
-            parent = parent:GetParent()
-        end
-    end)
+-- 显式原生入口：适配器只做启动器时直接打开原设置窗口。
+function ns.OpenNativeSettings()
+    if type(nativeSlash) == "function" then
+        local ok = pcall(nativeSlash, "", nil)
+        if ok then return true end
+    end
+    if ns.SettingsFrame then ns.SettingsFrame:Show(); return true end
+    return false
 end
+
+-- 游戏设置分类保持原生显示；管理中心只提供启动入口，不隐藏原设置页。

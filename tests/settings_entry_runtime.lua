@@ -55,28 +55,44 @@ assert(#calls == 0, "An unrelated visible settings window must not authorize an 
 
 -- Blizzard parents the selected category canvas before showing it.
 panel:Hide(); panel:SetParent(canvas); panel:Show()
-assert(#calls == 1 and not panel:IsShown(), "Explicit native settings category must route and hide its proxy")
+assert(#calls == 0 and panel:IsShown(), "Native settings category must remain visible without manager routing")
 UIParent:Hide(); UIParent:Show()
-assert(#calls == 1, "Restoring the UI after routing must not reopen the proxy")
+assert(#calls == 0 and panel:IsVisible(), "Restoring the UI must preserve the native settings page without manager routing")
 SettingsPanel:Hide(); panel:Show()
-assert(#calls == 1, "Hidden native settings must not authorize routing")
+assert(#calls == 0, "Hidden native settings must not authorize routing")
 UIParent:Hide(); SettingsPanel:Show()
-assert(#calls == 1, "An IsShown settings window under a hidden ancestor is not visible")
+assert(#calls == 0, "An IsShown settings window under a hidden ancestor is not visible")
 panel:Hide(); SettingsPanel:Hide(); UIParent:Show()
 
 -- Legacy settings and explicit slash/public entries keep working.
 local legacyCanvas = Frame(InterfaceOptionsFrame)
 panel:SetParent(legacyCanvas); InterfaceOptionsFrame:Show(); panel:Show()
-assert(#calls == 2 and not panel:IsShown(), "Legacy native settings category must still route")
+assert(#calls == 0 and panel:IsVisible(), "Legacy native settings category must remain visible without manager routing")
 InterfaceOptionsFrame:Hide()
 SlashCmdList.InspectForEllesmereUI("")
-assert(#calls == 3 and nativeCalls == 0, "Manual slash entry must route without a native settings window")
-assert(ns.TryOpenManager("gear") and calls[4].key == "gear", "Public settings tab request must be preserved")
+assert(#calls == 1 and nativeCalls == 0, "Manual slash entry must route without a native settings window")
+assert(ns.TryOpenManager("gear") and calls[2].key == "gear", "Public settings tab request must be preserved")
+assert(ns.OpenNativeSettings() and nativeCalls == 1 and #calls == 2,
+    "Manager launcher must open native settings directly without routing back into the manager")
 QFXAddonManagerAPI = nil
 assert(not ns.TryOpenManager())
 SlashCmdList.InspectForEllesmereUI("")
-assert(nativeCalls == 1, "Standalone slash fallback must remain")
+assert(nativeCalls == 2, "Standalone slash fallback must remain")
 InterfaceOptionsFrame:Show(); panel:Show()
-assert(panel:IsShown() and #calls == 4, "Standalone canvas must stay available without the manager")
+assert(panel:IsShown() and #calls == 2, "Standalone canvas must stay available without the manager")
+assert(ns.OpenNativeSettings() and nativeCalls == 3 and #calls == 2,
+    "Standalone explicit native settings entry must remain")
+QFXAddonManagerAPI = {OpenAddonSettings = function() return false end}
+SlashCmdList.InspectForEllesmereUI("")
+assert(nativeCalls == 4, "A declined manager entry must fall back to native settings")
+local frameOnly = {SettingsFrame = Frame(UIParent)}
+SlashCmdList = {}
+assert(loadfile(root .. "ManagerBridge.lua"))("InspectForEllesmereUI", frameOnly)
+frameOnly.SettingsFrame:Hide()
+assert(frameOnly.OpenNativeSettings() and frameOnly.SettingsFrame:IsShown(),
+    "Native settings must fall back to the frame when the slash handler is unavailable")
+local noEntry = {}
+assert(loadfile(root .. "ManagerBridge.lua"))("InspectForEllesmereUI", noEntry)
+assert(not noEntry.OpenNativeSettings(), "Unavailable native settings must report failure")
 assert(ns.GetSettingsDefinition() == ns.GetSettingsDefinition(), "Settings definition caching must remain")
-print("PASS: " .. GetLocale() .. " Inspect ancestor/orphan OnShow isolation, native settings ancestry/visibility, slash/public entries and standalone fallback")
+print("PASS: " .. GetLocale() .. " Inspect ancestor/orphan OnShow isolation, native settings visibility, launcher recursion isolation, slash/public entries and standalone fallback")
