@@ -103,6 +103,9 @@ CharacterFrame=CreateFrame("Frame")
 GameTooltip={lines={}, SetOwner=function() end, SetText=function() end, SetHyperlink=function() end, Show=function() end, Hide=function() end,
     AddLine=function(self,text) self.lines[#self.lines+1]=text end}
 local function itemLink(id, suffix) return "|cffa335ee|Hitem:"..id..":0:"..(suffix or "0:0:0:0").."|h[Item "..id.."]|h|r" end
+local function upgradeLink(id, bonuses, modifiers)
+    return itemLink(id, "0:0:0:0:0::90:71:0:16:"..#bonuses..":"..table.concat(bonuses, ":")..(modifiers or ""))
+end
 local inventory={player={[1]=itemLink(100,"201:202:0:0"),[2]=itemLink(101),[16]=itemLink(102)},
     target={[1]=itemLink(103,"0:203:0:0")}}
 function GetInventoryItemLink(unit,slot) return inventory[unit] and inventory[unit][slot] end
@@ -111,6 +114,9 @@ local equipment={
     [101]={sockets=0,level=334}, [102]={sockets=0,crafted=2,level=331},
     [103]={sockets=2,gems={0,203}}, [104]={sockets=0},
     [105]={sockets=1,gems={204}}, [106]={sockets=0,track="Myth"},
+    [107]={sockets=0,track="Myth",current=8,maximum=6},
+    [108]={sockets=0,track="Hero",current=8,maximum=6},
+    [109]={sockets=0,track="Myth",current=9,maximum=6},
 }
 local loaded, requested = {}, {}
 local enchantNames={}
@@ -208,7 +214,7 @@ end
 local parent=CreateFrame("Frame")
 local panel=ShowInspectItemListFrame("player",parent,321,321)
 assert(panel.item1.link==inventory.player[1],"Inventory instance link must survive GetItemInfo")
-assert(panel.item1.itemString.text:find("[Hero 6/6]",1,true),"Upgrade track")
+assert(panel.item1.itemString.text:find("|cffffd200[Hero 6/6]|r",1,true),"Ordinary upgrade tracks stay gold")
 assert(panel.item2.itemString.text:find((ns.L and ns.L.NoUpgradeTrack) or "No upgrade track",1,true))
 assert(panel.item15.itemString.text:find((ns.L and ns.L.CraftedEquipment) or "Crafted",1,true))
 local stickyWidth = panel:GetWidth()
@@ -328,9 +334,29 @@ equipment[103].missingStats=false
 inventory.player[2]=itemLink(106)
 panel=ShowInspectItemListFrame("player",parent,321,321)
 assert(panel.item2.itemString.text:find("[Myth]",1,true),"Track-only info stays valid")
+
+local mythLink = upgradeLink(107, {900,12856,901})
+inventory.target[2] = mythLink
+other = ShowInspectItemListFrame("target",otherParent,321,321)
+assert(other.item2.itemString.text=="|cff69e888[Myth 8/6]|r "..mythLink,"Inspected Venomforged Myth track is green")
+inventory.target[2] = nil
+
+inventory.player[2] = upgradeLink(108, {900,12848})
+ShowInspectItemListFrame("player",parent,321,321)
+assert(panel.item2.itemString.text:find("|cff69e888[Hero 8/6]|r",1,true),"Equipped Venomforged Hero track is green")
+inventory.player[2] = upgradeLink(109, {900}, ":1:9:12856")
+ShowInspectItemListFrame("player",parent,321,321)
+assert(panel.item2.itemString.text:find("|cffffd200[Myth 9/6]|r",1,true),"Elevated drops and item modifiers do not count as Venomforged bonuses")
+
+inventory.player[2] = upgradeLink(101, {12856})
+inventory.player[16] = upgradeLink(102, {13852,900})
+ShowInspectItemListFrame("player",parent,321,321)
+assert(panel.item2.itemString.text:find("|cff69e888["..ns.L.VenomforgedEquipment.."]|r",1,true),"Missing track uses the localized Venomforged label")
+assert(panel.item15.itemString.text:find("|cff69e888["..ns.L.CraftedEquipment.." |A:Professions-ChatIcon-Quality-Tier2:",1,true),"Venomforged crafted quality stays visible in green")
 InspectForEllesmereUIDB.ShowUpgradeInfo=false
 panel=ShowInspectItemListFrame("player",parent,321,321)
 assert(panel.item15.itemString.text==inventory.player[16],"Disabled prefix setting remains respected")
+inventory.player[2] = itemLink(106)
 inventory.player[16]=itemLink(102):gsub("item:102:0:","item:102:9001:")
 ShowInspectItemListFrame("player",parent,321,321)
 local enchantPanel=panel.item15.enchantFrame

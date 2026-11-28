@@ -21,6 +21,7 @@ ns.L = setmetatable({
     ShowGemAndEnchant           = "显示宝石与附魔信息",
     ShowUpgradeInfo             = "显示装备升级信息",
     CraftedEquipment            = "制造",
+    VenomforgedEquipment         = "晋升毒液铸造",
     NoUpgradeTrack              = "无升级路线",
     LoadingGemInfo              = "宝石信息加载中…",
     EnchantedEquipment          = "已附魔",

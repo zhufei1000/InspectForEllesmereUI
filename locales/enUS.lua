@@ -19,6 +19,7 @@ ns.L = setmetatable({
     ShowGemAndEnchant = "Show gems and enchants",
     ShowUpgradeInfo = "Show equipment upgrade information",
     CraftedEquipment = "Crafted",
+    VenomforgedEquipment = "Ascendant Venomforged",
     NoUpgradeTrack = "No upgrade track",
     LoadingGemInfo = "Loading gem information…",
     EnchantedEquipment = "Enchanted",

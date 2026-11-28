@@ -90,13 +90,31 @@ elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
 end
 
 local UPGRADE_TEXT_COLOR = "ffffd200"
+local VENOMFORGED_TEXT_COLOR = "ff69e888"
+local VENOMFORGED_BONUS_IDS = {
+    ["12848"] = true, -- Hero track
+    ["12856"] = true, -- Myth track
+    ["13852"] = true, -- Tidal crafted
+}
+-- Twelve item-link fields precede the bonus count. Item modifiers follow the bonus IDs.
+local ITEM_BONUS_PATTERN = "|Hitem:" .. string.rep("[^:|]*:", 12) .. "(%d+)(:[^|]*)|h"
 
-local function ColorizeUpgradeText(text)
-    if (not text) then
-        return ""
+local function IsVenomforged(link)
+    local count, fields = link:match(ITEM_BONUS_PATTERN)
+    local bonusesLeft = tonumber(count) or 0
+    if (bonusesLeft == 0) then return false end
+
+    for bonusID in fields:gmatch(":([^:]*)") do
+        if (VENOMFORGED_BONUS_IDS[bonusID]) then return true end
+        bonusesLeft = bonusesLeft - 1
+        if (bonusesLeft == 0) then break end
     end
+    return false
+end
 
-    return format("|c%s%s|r", UPGRADE_TEXT_COLOR, text)
+local function FormatUpgradePrefix(text, link, isVenomforged)
+    local color = isVenomforged and VENOMFORGED_TEXT_COLOR or UPGRADE_TEXT_COLOR
+    return format("|c%s[%s]|r %s", color, text, link)
 end
 
 local function FormatInspectItemText(link, name)
@@ -105,6 +123,7 @@ local function FormatInspectItemText(link, name)
         return link or name or ""
     end
 
+    local isVenomforged = IsVenomforged(link)
     local crafting = C_TradeSkillUI
     local crafted = crafting and crafting.GetItemCraftedQualityInfo and crafting.GetItemCraftedQualityInfo(link)
     local craftedQuality = crafted and crafted.quality
@@ -117,18 +136,20 @@ local function FormatInspectItemText(link, name)
             or ("Professions-ChatIcon-Quality-Tier" .. craftedQuality)
         local qualityIcon = format("|A:%s:14:14|a", atlas)
         local displayLink = link:gsub("|A:Professions%-ChatIcon%-Quality%-Tier%d+:[^|]*|a", "")
-        return format("%s %s", ColorizeUpgradeText(format("[%s %s]", L.CraftedEquipment or "Crafted", qualityIcon)), displayLink)
+        return FormatUpgradePrefix(format("%s %s", L.CraftedEquipment or "Crafted", qualityIcon), displayLink, isVenomforged)
     end
 
     local info = GetItemUpgradeInfoAPI and GetItemUpgradeInfoAPI(link)
     if (not info or not info.trackString or info.trackString == "") then
-        return format("%s %s", ColorizeUpgradeText(format("[%s]", L.NoUpgradeTrack or "No upgrade track")), link)
+        local label = isVenomforged and (L.VenomforgedEquipment or "Ascendant Venomforged")
+            or (L.NoUpgradeTrack or "No upgrade track")
+        return FormatUpgradePrefix(label, link, isVenomforged)
     end
     if (info.currentLevel ~= nil and info.maxLevel ~= nil) then
-        return format("%s %s", ColorizeUpgradeText(format("[%s %d/%d]", info.trackString, info.currentLevel, info.maxLevel)), link)
+        return FormatUpgradePrefix(format("%s %d/%d", info.trackString, info.currentLevel, info.maxLevel), link, isVenomforged)
     end
 
-    return format("%s %s", ColorizeUpgradeText(format("[%s]", info.trackString)), link)
+    return FormatUpgradePrefix(info.trackString, link, isVenomforged)
 end
 
 local function SafeGetItemSetID(link)

@@ -23,6 +23,7 @@ ns.L = setmetatable({
     ShowGemAndEnchant           = "Показать самоцветы и чары",
     ShowUpgradeInfo             = "Показать информацию об улучшении",
     CraftedEquipment            = "Крафт",
+    VenomforgedEquipment         = "Вознесенный ядокованый",
     NoUpgradeTrack              = "Без пути улучшения",
     LoadingGemInfo              = "Загрузка данных о самоцветах…",
     EnchantedEquipment          = "Зачаровано",

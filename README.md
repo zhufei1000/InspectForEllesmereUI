@@ -14,6 +14,7 @@ Download the addon ZIP from Releases, extract its InspectForEllesmereUI folder i
 - 正式服接口 / Retail interfaces: `120100`, `120007`, `120105`
 - 存档变量 / SavedVariables: `InspectForEllesmereUIDB`, `InspectForEllesmereUICharacterDB`
 - 侧栏标记：绿色 BIS / TOP1–TOP3，灰色 N/R；附魔星号绿色表示符合推荐、红色表示缺失或不同、黄色表示无法判断。
+- 侧栏的装备升级前缀以亮绿色标记使用晋升毒液石升级的装备，包括符合条件的制造装备。
 - 鼠标提示中的职业专精功能已移除。
 
 ## 本地化 / Localization
@@ -45,7 +46,7 @@ git push origin v2.3.1
 
 请提交全部插件改动（含适配层等新增文件）后再打标签；采集器的"自动提交并发布"同样会提交工作区内的全部改动。
 
-采集器只生成 GearData，不重建 Options.lua 或 ManagerBridge.lua。采集器打包前与 CI／自动发布共用推荐数据和设置入口回归检查，覆盖父界面隐藏后恢复时不误开管理中心、原生设置页保持显示、管理中心启动原生设置时不循环跳转，以及斜杠入口与独立运行回退；检查失败时停止后续打包同步或发布。本地采集器默认将每次会话日志保存在 tools/local_archon/out/logs/，包含失败命令、退出码与异常堆栈。
+采集器只重建 GearData，从项目源码打包侧栏、设置和其他运行文件。采集器打包前与 CI／自动发布共用推荐数据、侧栏显示和设置入口回归检查。侧栏测试覆盖毒液石升级标记、普通升级轨道和制造品质显示。任一检查失败时停止后续打包同步或发布。本地采集器默认将每次会话日志保存在 tools/local_archon/out/logs/，包含失败命令、退出码与异常堆栈。
 
 v* 标签会触发 [Release addon](https://github.com/zhufei1000/InspectForEllesmereUI/actions/workflows/release.yml)：校验标签与 TOC 版本一致、运行测试、打包、生成 SHA256 校验文件，然后发布 GitHub Release。失败时可重跑任务，或在 Actions 中手动运行并填写已有标签；已发布版本不会被重复覆盖。发布使用 GitHub 自动提供的 token，无需额外配置个人令牌。
 

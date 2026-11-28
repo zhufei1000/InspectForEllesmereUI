@@ -22,6 +22,7 @@ ns.L = setmetatable({
     ShowGemAndEnchant           = "顯示寶石與附魔資訊",
     ShowUpgradeInfo             = "顯示裝備升級資訊",
     CraftedEquipment            = "製造",
+    VenomforgedEquipment         = "卓越劇毒鍛造",
     NoUpgradeTrack              = "無升級路線",
     LoadingGemInfo              = "寶石資訊載入中…",
     EnchantedEquipment          = "已附魔",
